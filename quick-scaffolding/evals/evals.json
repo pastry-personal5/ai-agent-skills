@@ -1,0 +1,87 @@
+{
+  "skill_name": "quick-scaffolding",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/quick-scaffolding <target-dir>\n\nProject name: pixel-notes\nDescription: A tiny macOS note-taking app with a Qt Widgets window.\nStack: Rust\nHas a GUI: yes\nLicense: Apache-2.0",
+      "expected_output": "Repo meta files, docs and AGENTS.md scaffolded per the manifest, with every check in evalkit.py passing.",
+      "files": [],
+      "expectations": [
+        "AGENTS.md has Decided, Undecided and Documentation sections and the 'Ask before building on an undecided item' rule",
+        "CLAUDE.md contains exactly the one line @AGENTS.md",
+        "LICENSE is the bundled Apache-2.0 text, byte for byte",
+        "README.md names the project and points to AGENTS.md and docs/contribution-guide.md",
+        ".gitignore exists and ignores the Rust build output (target)",
+        "docs/development-process.md gate line is filled in and identical to the gate in AGENTS.md",
+        "docs/development-process.md says to put milestone IDs in commit bodies, not PR titles",
+        "docs/contribution-guide.md has a Status line, the stack's gate commands under Required validation, and no leftover TV-project example",
+        "docs/product-behavior.md exists with a title, a Status line and some summary text",
+        "The three ux-*.md docs are present exactly when the app has a GUI",
+        "No unfilled {{placeholder}} remains in any scaffolded file",
+        "No relative markdown link points at a file that does not exist",
+        "docs/README.md indexes every doc in docs/ exactly once, and nothing else",
+        "AGENTS.md carries no dual-pane-specific or wrong-stack content for a Rust project",
+        "No commit was made and no build or dependency output was created",
+        "The final message shows the file tree, names docs/roadmap.md as still to write, and lists files that still contain TBD",
+        "No interview question was asked, because the user's message already answered all of them",
+        "A fresh directory needed no plan-approval or conflict prompt"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/quick-scaffolding <target-dir>\n\nProject name: logslice\nDescription: A command-line tool that slices large log files by time range.\nStack: Python\nHas a GUI: no\nLicense: MIT",
+      "expected_output": "Repo meta files, docs and AGENTS.md scaffolded per the manifest, with every check in evalkit.py passing.",
+      "files": [],
+      "expectations": [
+        "AGENTS.md has Decided, Undecided and Documentation sections and the 'Ask before building on an undecided item' rule",
+        "CLAUDE.md contains exactly the one line @AGENTS.md",
+        "LICENSE is the MIT license with year 2026 and the copyright holder from git config",
+        "README.md names the project and points to AGENTS.md and docs/contribution-guide.md",
+        ".gitignore exists and ignores the Python build output (__pycache__)",
+        "docs/development-process.md gate line is filled in and identical to the gate in AGENTS.md",
+        "docs/development-process.md says to put milestone IDs in commit bodies, not PR titles",
+        "docs/contribution-guide.md has a Status line, the stack's gate commands under Required validation, and no leftover TV-project example",
+        "docs/product-behavior.md exists with a title, a Status line and some summary text",
+        "The three ux-*.md docs are present exactly when the app has a GUI",
+        "No unfilled {{placeholder}} remains in any scaffolded file",
+        "No relative markdown link points at a file that does not exist",
+        "docs/README.md indexes every doc in docs/ exactly once, and nothing else",
+        "AGENTS.md carries no dual-pane-specific or wrong-stack content for a Python project",
+        "No commit was made and no build or dependency output was created",
+        "The final message shows the file tree, names docs/roadmap.md as still to write, and lists files that still contain TBD",
+        "No interview question was asked, because the user's message already answered all of them",
+        "A fresh directory needed no plan-approval or conflict prompt"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/quick-scaffolding <target-dir>\n\nProject name: site-notes\nDescription: A static site generator for personal notes.\nStack: TypeScript\nHas a GUI: no\nLicense: Apache-2.0",
+      "expected_output": "Repo meta files, docs and AGENTS.md scaffolded per the manifest, with every check in evalkit.py passing.",
+      "files": [
+        "../quick-scaffolding-workspace/fixtures/existing-repo"
+      ],
+      "expectations": [
+        "AGENTS.md has Decided, Undecided and Documentation sections and the 'Ask before building on an undecided item' rule",
+        "CLAUDE.md contains exactly the one line @AGENTS.md",
+        "LICENSE is the bundled Apache-2.0 text, byte for byte",
+        ".gitignore exists and ignores the TypeScript build output (node_modules)",
+        "docs/development-process.md gate line is filled in and identical to the gate in AGENTS.md",
+        "docs/development-process.md says to put milestone IDs in commit bodies, not PR titles",
+        "docs/contribution-guide.md has a Status line, the stack's gate commands under Required validation, and no leftover TV-project example",
+        "docs/product-behavior.md exists with a title, a Status line and some summary text",
+        "The three ux-*.md docs are present exactly when the app has a GUI",
+        "No unfilled {{placeholder}} remains in any scaffolded file",
+        "No relative markdown link points at a file that does not exist",
+        "docs/README.md indexes every doc in docs/ exactly once, and nothing else",
+        "AGENTS.md carries no dual-pane-specific or wrong-stack content for a TypeScript project",
+        "No commit was made and no build or dependency output was created",
+        "The final message shows the file tree, names docs/roadmap.md as still to write, and lists files that still contain TBD",
+        "No interview question was asked, because the user's message already answered all of them",
+        "Exactly one plan-approval prompt and one conflict prompt, for README.md only",
+        "The existing README.md is unchanged",
+        "The existing docs/glossary.md and src/index.ts are unchanged",
+        "The docs index has a row for glossary.md using the doc's own summary line"
+      ]
+    }
+  ]
+}

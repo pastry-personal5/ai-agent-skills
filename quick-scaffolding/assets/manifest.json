@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "dest": "AGENTS.md",
+      "src": "AGENTS.md.tmpl",
+      "when": "always"
+    },
+    {
+      "dest": "CLAUDE.md",
+      "content": "@AGENTS.md\n",
+      "when": "always"
+    },
+    {
+      "dest": "docs/README.md",
+      "src": "docs/README.md",
+      "when": "always"
+    },
+    {
+      "dest": "docs/development-process.md",
+      "src": "docs/development-process.md",
+      "when": "always",
+      "replace": [
+        { "find": "The gate passes: TBD", "with": "The gate passes: {{GATE}}." }
+      ],
+      "index": "Phases, milestones, IDs (`P1-M2`), definition of done, where plans live, and doc status values."
+    },
+    {
+      "dest": "docs/contribution-guide.md",
+      "src": "contribution-guide.md",
+      "when": "always",
+      "replace": [
+        { "find": "# Contribution Guide\n\nTBD", "with": "# Contribution Guide\n\nStatus: Active\n\nHow to set up `{{NAME}}`, validate a change, write commit messages, and open a pull request." },
+        { "find": "## Setup and development\n\nTBD", "with": "## Setup and development\n\n{{ENVIRONMENT}}\n\n{{COMMANDS_BLOCK}}" },
+        { "find": "## Required validation\n\nTBD", "with": "## Required validation\n\nBefore opening a pull request, run the full checks from the repository root:\n\n{{GATE_BLOCK}}" }
+      ],
+      "index": "Local setup, required validation, commit message style, and pull request conventions."
+    },
+    {
+      "dest": "docs/product-behavior.md",
+      "src": "docs/product-behavior.md",
+      "when": "gui",
+      "index": "Product scope: what the app does and what it deliberately does not do."
+    },
+    {
+      "dest": "docs/ux-terms.md",
+      "src": "docs/ux-terms.md",
+      "when": "gui",
+      "index": "Canonical component names for UI text, with their code-facing identifiers."
+    },
+    {
+      "dest": "docs/ux-information-architecture.md",
+      "src": "docs/ux-information-architecture.md",
+      "when": "gui",
+      "index": "The Standard Layout: how the app's components contain one another."
+    },
+    {
+      "dest": "docs/ux-gui.md",
+      "src": "docs/ux-gui.md",
+      "when": "gui",
+      "index": "Current interface and owner-approved GUI behavior, with planned behavior kept separate."
+    }
+  ],
+  "licenses": {
+    "Apache-2.0": "licenses/Apache-2.0.txt"
+  },
+  "still_to_write": [
+    {
+      "path": "docs/roadmap.md",
+      "when": "always",
+      "reason": "development-process.md names it as the only place that says which phase is active. Create it when the first phase is planned."
+    }
+  ]
+}
