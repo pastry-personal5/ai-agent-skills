@@ -70,7 +70,7 @@ Keep milestone entries in the phase doc short — a link to its overview and arc
 Write its two plan docs first:
 
 - **`milestone-NN-overview.md`**: the milestone's goal, scope (what's in and out), and verifiable completion checklist.
-- **`milestone-NN-architecture.md`**: the technical approach — affected modules, new types or bridge surfaces, and any sequencing within the milestone.
+- **`milestone-NN-architecture.md`**: the technical approach — affected modules, new types or public interfaces, and any sequencing within the milestone.
 
 Link both from the milestone's entry in the phase doc. A milestone whose plan docs raise an item from AGENTS.md's "Undecided" section needs that item decided first — see "Ask before building on an undecided item" in AGENTS.md.
 

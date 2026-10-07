@@ -1,0 +1,24 @@
+{
+  "name": "logslice",
+  "description": "A command-line tool that slices large log files by time range.",
+  "stack": "Python with ruff and pytest",
+  "license": "Apache-2.0",
+  "gui": false,
+  "gate": ["ruff format --check .", "ruff check .", "pytest -q"],
+  "commands": [
+    ["pytest -q", "run the tests"],
+    ["ruff format .", "format"],
+    ["ruff check .", "lint"]
+  ],
+  "environment": ["Python 3.12 or newer.", "ruff and pytest, for example `pip install ruff pytest`."],
+  "conventions": [
+    "Format with `ruff format`; do not hand-format.",
+    "Keep `ruff check` free of warnings.",
+    "Raise specific exceptions; do not swallow errors."
+  ],
+  "build_output": ["__pycache__/", ".venv/", ".pytest_cache/", ".ruff_cache/"],
+  "generated": {
+    ".gitignore": "__pycache__/\n.venv/\n.pytest_cache/\n.ruff_cache/\n.DS_Store\n"
+  },
+  "extra_assets": []
+}

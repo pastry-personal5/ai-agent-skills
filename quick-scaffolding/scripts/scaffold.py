@@ -11,7 +11,8 @@
 named with --overwrite (replace it) or --append (README.md only: add the missing License and
 Contributing sections). It prints a JSON result whose "summary" is the text to show the user.
 
-Standard library only. Exit status 2 means nothing was written; "errors" says why.
+Standard library only. Exit status 2: the values or the request were rejected before anything was written;
+"errors" says why. Exit status 1: an I/O error; files written before it stay where they are.
 """
 import argparse
 import json
@@ -23,9 +24,12 @@ SKILL = Path(__file__).resolve().parent.parent
 ASSETS = SKILL / "assets"
 PLACEHOLDER = re.compile(r"\{\{(\w+)\}\}")
 IGNORED = {".git", ".DS_Store"}
-GUI_DECIDED = ("- **Interaction model:** [ux-gui.md](docs/ux-gui.md). Component vocabulary is in "
+# GUI-only lines. product-behavior.md exists only for GUI apps, so every mention of it lives here or in PRODUCT_SCOPE_REF.
+GUI_DECIDED = ("- **Product scope:** [product-behavior.md](docs/product-behavior.md).\n"
+               "- **Interaction model:** [ux-gui.md](docs/ux-gui.md). Component vocabulary is in "
                "[ux-terms.md](docs/ux-terms.md) and the layout containment model in "
                "[ux-information-architecture.md](docs/ux-information-architecture.md).")
+PRODUCT_SCOPE_REF = " and [docs/product-behavior.md](docs/product-behavior.md) for product scope"
 
 
 class Fail(Exception):
@@ -39,20 +43,40 @@ def load_values(path):
         v = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as e:
         raise Fail(f"cannot read values file {path}: {e}")
+    if not isinstance(v, dict):
+        raise Fail("values file must hold a JSON object")
     need = {"name": str, "description": str, "stack": str, "license": str, "gui": bool,
             "gate": list, "commands": list, "environment": list, "conventions": list, "build_output": list}
     for key, typ in need.items():
         if not isinstance(v.get(key), typ):
             raise Fail(f"values.{key} is missing or not a {typ.__name__}")
+    for key in ("environment", "conventions", "build_output"):
+        if not all(isinstance(i, str) for i in v[key]):
+            raise Fail(f"values.{key} must be a list of strings")
     if not v["gate"] or not all(isinstance(c, str) and c.strip() for c in v["gate"]):
         raise Fail("values.gate must be a non-empty list of command strings")
-    if not v["commands"] or not all(isinstance(c, list) and len(c) == 2 for c in v["commands"]):
-        raise Fail('values.commands must be a non-empty list of ["command", "comment"] pairs')
-    v.setdefault("generated", {})
-    v.setdefault("extra_assets", [])
-    if not v["generated"].get(".gitignore"):
+    if not v["commands"] or not all(isinstance(c, list) and len(c) == 2 and all(isinstance(x, str) for x in c)
+                                    for c in v["commands"]):
+        raise Fail('values.commands must be a non-empty list of ["command", "comment"] pairs of strings')
+    gen = v.setdefault("generated", {})
+    if not isinstance(gen, dict) or not all(isinstance(x, str) for x in gen.values()):
+        raise Fail("values.generated must be an object whose values are strings")
+    if not gen.get(".gitignore"):
         raise Fail("values.generated['.gitignore'] is required")
+    extras = v.setdefault("extra_assets", [])
+    if not isinstance(extras, list) or not all(
+            isinstance(x, dict) and isinstance(x.get("src"), str) and isinstance(x.get("dest"), str) for x in extras):
+        raise Fail('values.extra_assets must be a list of {"src": ..., "dest": ...} objects with string values')
     return v
+
+
+def confined(root, rel, what):
+    """root / rel, which must be a file path inside root: not absolute, no '..', no symlink leading out."""
+    root = root.resolve()
+    full = (root / rel).resolve()
+    if Path(rel).is_absolute() or ".." in Path(rel).parts or full == root or root not in full.parents:
+        raise Fail(f"{what} must be a relative path to a file inside {root.name}/, got {rel!r}")
+    return full
 
 
 def prose_list(items):
@@ -77,6 +101,7 @@ def placeholders(v):
         "ENVIRONMENT": "\n".join(f"- {e}" for e in v["environment"]),
         "CONVENTIONS": "\n".join(f"- {c}" for c in v["conventions"]),
         "BUILD_OUTPUT": ", ".join(f"`{b}`" for b in v["build_output"]),
+        "PRODUCT_SCOPE_REF": PRODUCT_SCOPE_REF if v["gui"] else "",
     }
 
 
@@ -92,6 +117,12 @@ def readme_sections(v):
         "## Contributing": "## Contributing\n\nContributors and AI agents: see [AGENTS.md](AGENTS.md) and "
                            "[docs/contribution-guide.md](docs/contribution-guide.md).\n",
     }
+
+
+def missing_sections(v, existing):
+    """{section name: text} for the README sections that no heading of any level in `existing` covers yet."""
+    return {head[3:]: body for head, body in readme_sections(v).items()
+            if not re.search(r"(?mi)^#{1,6}[ \t]+" + re.escape(head[3:]) + r"\b", existing)}
 
 
 def readme(v):
@@ -158,8 +189,16 @@ def render(v, target):
         if "index" in e:
             index_text[e["dest"]] = e["index"]
 
+    reserved = {"README.md", ".gitignore", "LICENSE"}
     for x in v["extra_assets"]:
-        put(x["dest"], (ASSETS / x["src"]).read_text(encoding="utf-8"), kind="extra")
+        src = confined(ASSETS, x["src"], f"extra_assets src {x['src']!r}")
+        dest = confined(target, x["dest"], f"extra_assets dest {x['dest']!r}").relative_to(target.resolve()).as_posix()
+        if dest in files or dest in reserved:
+            raise Fail(f"extra_assets dest {dest!r} is already produced by the scaffold")
+        try:
+            put(dest, src.read_text(encoding="utf-8"), kind="extra")
+        except (OSError, UnicodeDecodeError) as e:
+            raise Fail(f"cannot read extra_assets src {x['src']!r}: {e}")
 
     put("README.md", readme(v), kind="generated")
     put(".gitignore", v["generated"][".gitignore"], kind="generated")
@@ -200,7 +239,7 @@ def status_of(target, dest, data):
 
 
 def unregistered(manifest, v):
-    known = {e["src"] for e in manifest["entries"] if "src" in e} | {x["src"] for x in v["extra_assets"]}
+    known = {e["src"] for e in manifest["entries"] if "src" in e} | {Path(x["src"]).as_posix() for x in v["extra_assets"]}
     out = []
     for p in sorted(ASSETS.rglob("*")):
         rel = p.relative_to(ASSETS).as_posix()
@@ -259,18 +298,25 @@ def cmd_write(a):
     if append - {"README.md"}:
         raise Fail("--append only supports README.md")
     manifest, files, warnings = render(v, target)
+    if overwrite - set(files):
+        raise Fail(f"--overwrite names files the scaffold does not produce: {sorted(overwrite - set(files))}; "
+                   f"it produces: {sorted(files)}")
+    # every conflict surfaces here, before the first file is written
+    statuses = {dest: status_of(target, dest, f["data"]) for dest, f in files.items()}
     res = {k: [] for k in ("written", "overwritten", "appended", "skipped", "unchanged", "stubbed")}
+    added = {}
     for dest, f in files.items():
-        st = status_of(target, dest, f["data"])
+        st = statuses[dest]
         path = target / dest
         if st == "same":
             res["unchanged"].append(dest)
         elif st == "differs" and dest in append:
             existing = path.read_text(encoding="utf-8")
-            missing = [body for head, body in readme_sections(v).items() if head not in existing]
+            missing = missing_sections(v, existing)
             if missing:
-                path.write_text(existing.rstrip("\n") + "\n\n" + "\n".join(missing), encoding="utf-8")
+                path.write_text(existing.rstrip("\n") + "\n\n" + "\n".join(missing.values()), encoding="utf-8")
                 res["appended"].append(dest)
+                added[dest] = list(missing)
             else:
                 res["unchanged"].append(dest)
         elif st == "differs" and dest not in overwrite:
@@ -292,16 +338,18 @@ def cmd_write(a):
     notes.update({d: "(stub: the asset was empty)" for d in res["stubbed"]})
 
     out = [tree_text(target.name, notes), ""]
+    if warnings:
+        out += ["Warnings from the scaffold script (an asset template may be out of date with manifest.json):",
+                *[f"- {w}" for w in warnings], ""]
     if res["skipped"]:
         out += ["Skipped because they already existed:", *[f"- `{d}`: kept as it was; the scaffold's version differs." for d in res["skipped"]], ""]
     if res["appended"]:
-        out += ["Appended to:", *[f"- `{d}`: added the License and Contributing sections." for d in res["appended"]], ""]
+        out += ["Appended to:", *[f"- `{d}`: added the {' and '.join(added[d])} section{'s' * (len(added[d]) > 1)}."
+                                  for d in res["appended"]], ""]
     out += ["Still to write:", *([f"- `{s['path']}`: {s['reason']}" for s in todo] or ["- Nothing."]), ""]
-    out += ["Scaffold files that still contain `TBD`:", *([f"- `{d}`" for d in tbd] or ["- None."]), ""]
-    if not v.get("tooling_from_user"):
-        out += [f"Tooling chosen by this skill, not by you: {v['stack']}; gate: {prose_list(v['gate'])}. "
-                "Change it in AGENTS.md, docs/development-process.md and docs/contribution-guide.md if you prefer other tools."]
-    res.update(warnings=warnings, still_to_write=[s["path"] for s in todo], tbd_files=tbd, summary="\n".join(out))
+    out += ["Scaffold files that still contain `TBD`:", *([f"- `{d}`" for d in tbd] or ["- None."])]
+    res.update(warnings=warnings, appended_sections=added, still_to_write=[s["path"] for s in todo], tbd_files=tbd,
+               summary="\n".join(out))
     return res
 
 
@@ -321,6 +369,9 @@ def main():
     except Fail as e:
         print(json.dumps({"errors": [str(e)]}, indent=2))
         sys.exit(2)
+    except (OSError, UnicodeDecodeError) as e:
+        print(json.dumps({"errors": [f"I/O error: {e}"]}, indent=2))
+        sys.exit(1)
     print(json.dumps(out, indent=2))
 
 
