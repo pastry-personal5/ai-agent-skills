@@ -2,6 +2,8 @@
 name: quick-scaffolding
 description: Scaffold a new repo's meta files (README.md, LICENSE, .gitignore, AGENTS.md, a one-line CLAUDE.md, and a docs/ folder with the development process, contribution guide and, for GUI apps, the product-behavior and UX docs). Runs only when the user invokes /quick-scaffolding [target-dir].
 disable-model-invocation: true
+metadata:
+  version: "1.0.0"
 ---
 
 # Quick scaffolding
