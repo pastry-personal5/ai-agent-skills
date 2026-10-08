@@ -78,7 +78,9 @@ check("gate identical in AGENTS.md and process doc", g in agents1 and f"The gate
 cg = (t1 / "docs/contribution-guide.md").read_text()
 check("contribution guide: gate block, Status, neutral example, PR section still TBD",
       "```sh\ncargo fmt --check\ncargo clippy" in cg and "Status: Active" in cg and "mDNS" not in cg and "## Pull requests\n\nTBD" in cg)
-check("process doc: milestone IDs not in PR titles", "not in PR titles" in (t1 / "docs/development-process.md").read_text())
+process_doc = (t1 / "docs/development-process.md").read_text()
+check("process doc: phase and milestone numbers may change", "Phase and milestone numbers may change" in process_doc)
+check("process doc: no commit body ID rule", "commit message bodies" not in process_doc)
 check("GUI: Product scope and Interaction model lines in Decided",
       "- **Product scope:** [product-behavior.md](docs/product-behavior.md).\n- **Interaction model:**" in agents1)
 check("GUI: Project paragraph links the product scope doc", "overview and [docs/product-behavior.md](docs/product-behavior.md) for product scope." in agents1)

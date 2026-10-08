@@ -8,8 +8,8 @@ Development proceeds in numbered **phases**, and each phase is split into number
 
 - **Phases** are numbered Phase 1, Phase 2, Phase 3, and so on. A phase is a coherent product increment. It has a one-sentence goal and a list of exit criteria.
 - **Milestones** are numbered Milestone 1, 2, 3, and so on. Numbering restarts in each phase. A milestone is a small, verifiable step toward its phase's goal. It should fit in one reviewable change or a short series of changes.
-- **IDs:** `P<phase>-M<milestone>`. For example, `P1-M2` is Phase 1, Milestone 2. Put the ID in commit message bodies, not in PR titles.
-- **IDs are stable.** Never renumber a milestone. New milestones get the next free number, even when they will run before an existing one. A dropped milestone keeps its ID. Mark it `Dropped` with a one-line reason instead of deleting it.
+- **IDs:** `P<phase>-M<milestone>`. For example, `P1-M2` is Phase 1, Milestone 2.
+- **Renumbering:** Phase and milestone numbers may change as plans evolve. Update their IDs, filenames, and links together. Mark a dropped milestone `Dropped` with a one-line reason instead of deleting it.
 - **One active phase at a time.** Inside it, work on milestones in order unless the phase doc says otherwise.
 
 ### Status values

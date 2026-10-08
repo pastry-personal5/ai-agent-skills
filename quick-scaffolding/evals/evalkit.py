@@ -180,8 +180,9 @@ def checks(ev, run):
         gate = m.group(1).strip() if m else None
     add("docs/development-process.md gate line is filled in and identical to the gate in AGENTS.md",
         bool(gate) and gate != "TBD" and agents is not None and gate in agents, f"gate line: {gate!r}")
-    add("docs/development-process.md says to put milestone IDs in commit bodies, not PR titles",
-        bool(dp) and "not in PR titles" in dp, "line present" if dp and "not in PR titles" in dp else "line absent")
+    add("docs/development-process.md allows phase and milestone renumbering without prescribing commit body IDs",
+        bool(dp) and "Phase and milestone numbers may change" in dp and "commit message bodies" not in dp,
+        "renumbering allowed; no commit body rule" if dp and "Phase and milestone numbers may change" in dp and "commit message bodies" not in dp else "template rule mismatch")
 
     cg = read(docs / "contribution-guide.md")
     cmds, why = [], ""
