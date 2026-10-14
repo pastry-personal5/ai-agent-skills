@@ -15,6 +15,7 @@ Standard library only. Exit status 2: the values or the request were rejected be
 "errors" says why. Exit status 1: an I/O error; files written before it stay where they are.
 """
 import argparse
+import datetime
 import json
 import re
 import sys
@@ -67,6 +68,12 @@ def load_values(path):
     if not isinstance(extras, list) or not all(
             isinstance(x, dict) and isinstance(x.get("src"), str) and isinstance(x.get("dest"), str) for x in extras):
         raise Fail('values.extra_assets must be a list of {"src": ..., "dest": ...} objects with string values')
+    holder = v.get("license_holder")
+    if holder is not None and (not isinstance(holder, str) or not holder.strip() or "\n" in holder or "\r" in holder):
+        raise Fail("values.license_holder must be a non-empty one-line string")
+    year = v.get("license_year")
+    if year is not None and not (isinstance(year, int) and not isinstance(year, bool) or isinstance(year, str) and year.isdigit()):
+        raise Fail("values.license_year must be a year such as 2026")
     return v
 
 
@@ -102,6 +109,8 @@ def placeholders(v):
         "CONVENTIONS": "\n".join(f"- {c}" for c in v["conventions"]),
         "BUILD_OUTPUT": ", ".join(f"`{b}`" for b in v["build_output"]),
         "PRODUCT_SCOPE_REF": PRODUCT_SCOPE_REF if v["gui"] else "",
+        "YEAR": str(v.get("license_year") or datetime.date.today().year),
+        "HOLDER": (v.get("license_holder") or "").strip(),
     }
 
 
@@ -143,8 +152,13 @@ def summary_line(text):
 def doc_rows(files, index_text, target):
     """One table row per doc that will exist in docs/ after the run, manifest docs first."""
     docs = [d for d in files if d.startswith("docs/") and d.endswith(".md") and d != "docs/README.md"]
-    kept = sorted(str(p.relative_to(target)) for p in (target / "docs").rglob("*.md")
-                  if p.name != "README.md" and str(p.relative_to(target)) not in files) if (target / "docs").is_dir() else []
+    kept = []  # docs already in the repo, other than archived ones, which AGENTS.md tells agents to skip
+    if (target / "docs").is_dir():
+        for p in (target / "docs").rglob("*.md"):
+            rel = p.relative_to(target).as_posix()
+            if p.name != "README.md" and rel not in files and not rel.startswith("docs/archive/"):
+                kept.append(rel)
+        kept.sort()
     rows = []
     for d in docs + kept:
         text = index_text.get(d)
@@ -203,7 +217,11 @@ def render(v, target):
     put("README.md", readme(v), kind="generated")
     put(".gitignore", v["generated"][".gitignore"], kind="generated")
     lic = manifest.get("licenses", {}).get(v["license"])
-    if lic:
+    if lic and lic.endswith(".tmpl"):
+        if not ph["HOLDER"]:
+            raise Fail(f"license {v['license']!r} needs values.license_holder, the copyright holder's name")
+        put("LICENSE", (ASSETS / lic).read_text(encoding="utf-8"), kind="generated")
+    elif lic:
         put("LICENSE", data=(ASSETS / lic).read_bytes(), kind="license")
     elif v["generated"].get("LICENSE"):
         put("LICENSE", v["generated"]["LICENSE"], kind="generated")
@@ -248,8 +266,8 @@ def unregistered(manifest, v):
     return out
 
 
-def tree_text(root_name, notes):
-    """ASCII tree of {relative path: note}."""
+def tree_text(root_name, notes, leaf_dirs=()):
+    """ASCII tree of {relative path: note}. A path in leaf_dirs is a directory shown as one line, with no children."""
     tree = {}
     for path in notes:
         node = tree
@@ -258,12 +276,18 @@ def tree_text(root_name, notes):
     lines = [f"{root_name}/"]
 
     def walk(node, prefix, parent):
-        names = sorted(node, key=lambda n: (not node[n], n.lower()))
+        def rel_of(name):
+            return f"{parent}/{name}" if parent else name
+
+        def is_dir(name):
+            return bool(node[name]) or rel_of(name) in leaf_dirs
+
+        names = sorted(node, key=lambda n: (not is_dir(n), n.lower()))
         for i, name in enumerate(names):
             last = i == len(names) - 1
-            rel = f"{parent}/{name}" if parent else name
+            rel = rel_of(name)
             note = notes.get(rel, "")
-            lines.append(f"{prefix}{'└── ' if last else '├── '}{name}{'/' if node[name] else ''}{('  ' + note) if note else ''}")
+            lines.append(f"{prefix}{'└── ' if last else '├── '}{name}{'/' if is_dir(name) else ''}{('  ' + note) if note else ''}")
             if node[name]:
                 walk(node[name], prefix + ("    " if last else "│   "), rel)
 
@@ -271,11 +295,30 @@ def tree_text(root_name, notes):
     return "\n".join(lines)
 
 
-def existing_files(target):
+def count_note(n):
+    return f"{n} file{'s' * (n != 1)}"
+
+
+def existing_files(target, scaffold_paths):
+    """What the target holds, as (files, collapsed). `files` lists every file in the target's top level and in each
+    top-level directory that holds a scaffold file (the conflicts the user must see). Every other top-level directory
+    goes into `collapsed` as {name: file count}, so a repo with a node_modules does not flood the plan and the summary."""
     if not target.is_dir():
-        return []
-    return sorted(p.relative_to(target).as_posix() for p in target.rglob("*")
-                  if p.is_file() and not (set(p.relative_to(target).parts) & IGNORED))
+        return [], {}
+    expand = {Path(d).parts[0] for d in scaffold_paths if len(Path(d).parts) > 1}
+    files, collapsed = [], {}
+    for child in sorted(target.iterdir()):
+        if child.name in IGNORED:
+            continue
+        if child.is_dir() and not child.is_symlink():
+            below = [p for p in child.rglob("*") if p.is_file() and not (set(p.relative_to(child).parts) & IGNORED)]
+            if child.name in expand:
+                files += sorted(p.relative_to(target).as_posix() for p in below)
+            else:
+                collapsed[child.name] = len(below)
+        elif child.is_file():
+            files.append(child.name)
+    return files, collapsed
 
 
 # ---------------------------------------------------------------- commands
@@ -285,10 +328,12 @@ def cmd_plan(a):
     target = Path(a.target).expanduser().resolve()
     manifest, files, warnings = render(v, target)
     listing = [{"dest": d, "status": status_of(target, d, f["data"]), "kind": f["kind"]} for d, f in files.items()]
-    notes = {p: "(existing, not part of the scaffold)" for p in existing_files(target)}
+    found, collapsed = existing_files(target, files)
+    notes = {p: "(existing, not part of the scaffold)" for p in found}
+    notes.update({d: f"({count_note(n)}, existing, not part of the scaffold)" for d, n in collapsed.items()})
     notes.update({i["dest"]: {"new": "(new)", "same": "(exists, identical)", "differs": "(exists, differs)"}[i["status"]] for i in listing})
     return {"fresh": is_fresh(target), "files": listing, "unregistered_assets": unregistered(manifest, v),
-            "warnings": warnings, "plan_tree": tree_text(target.name, notes)}
+            "warnings": warnings, "plan_tree": tree_text(target.name, notes, collapsed)}
 
 
 def cmd_write(a):
@@ -332,12 +377,14 @@ def cmd_write(a):
     tbd = sorted(d for d in files if d not in res["skipped"] and (target / d).is_file() and b"TBD" in (target / d).read_bytes())
     todo = [s for s in manifest.get("still_to_write", [])
             if (s["when"] == "always" or v["gui"]) and not (target / s["path"]).exists()]
-    notes = {p: "" for p in existing_files(target)}
+    found, collapsed = existing_files(target, files)
+    notes = {p: "" for p in found}
+    notes.update({d: f"({count_note(n)})" for d, n in collapsed.items()})
     notes.update({d: "(existing, kept)" for d in res["skipped"]})
     notes.update({d: "(existing, README sections appended)" for d in res["appended"]})
     notes.update({d: "(stub: the asset was empty)" for d in res["stubbed"]})
 
-    out = [tree_text(target.name, notes), ""]
+    out = [tree_text(target.name, notes, collapsed), ""]
     if warnings:
         out += ["Warnings from the scaffold script (an asset template may be out of date with manifest.json):",
                 *[f"- {w}" for w in warnings], ""]

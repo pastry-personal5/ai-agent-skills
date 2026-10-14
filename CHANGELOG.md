@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- The development process doc now lets phase and milestone numbers change as plans evolve (update IDs, filenames and links together), and names milestone plan docs `milestone-NN-<theme>-overview.md` and `milestone-NN-<theme>-architecture.md`.
+- MIT, BSD-2-Clause, BSD-3-Clause and ISC are bundled with their canonical text, so the agent no longer writes licence text from memory. Put the copyright holder in `license_holder` in the values file; the year defaults to the current one (`license_year` overrides it).
+- On a repo that already has files, the plan and the final summary show a directory such as `node_modules/` as one line with its file count, instead of listing every file in it.
+- The docs index no longer lists files under `docs/archive/`.
+
 ## 1.0.0 - 2026-10-07
 
 First release of `quick-scaffolding`.

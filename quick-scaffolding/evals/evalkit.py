@@ -18,34 +18,11 @@ SKILL = WS.parent
 CONFIGS = ("with_skill", "without_skill")
 UX = ("ux-terms.md", "ux-gui.md", "ux-information-architecture.md")
 
-MIT_TEXT = """MIT License
-
-Copyright (c) {year} {holder}
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
-
 # `smoke` is what a correct agent would put in the values file for that eval (used by the no-agent `smoke` command).
 EVALS = [
     dict(id=1, name="gui-rust-empty", project="pixel-notes",
          desc="A tiny macOS note-taking app with a Qt Widgets window.",
-         stack="Rust", gui=True, license="Apache-2.0", holder=None, fixture=None, git_init=False,
+         stack="Rust", ignores="target", gui=True, license="Apache-2.0", holder=None, fixture=None, git_init=False,
          tooling="rustfmt, clippy and cargo test", gate_tools=["cargo fmt", "clippy", "cargo test"],
          smoke=dict(gate=["cargo fmt --check", "cargo clippy --all-targets -- -D warnings", "cargo test"],
                     commands=[["cargo build", "build"], ["cargo test", "run the tests"]],
@@ -53,7 +30,7 @@ EVALS = [
                     build_output=["target/"], gitignore="target/\n.DS_Store\n")),
     dict(id=2, name="python-cli-mit-git-only", project="logslice",
          desc="A command-line tool that slices large log files by time range.",
-         stack="Python", gui=False, license="MIT", holder="Ada Example", fixture=None, git_init=True,
+         stack="Python", ignores="__pycache__", gui=False, license="MIT", holder="Ada Example", fixture=None, git_init=True,
          tooling="ruff and pytest", gate_tools=["ruff", "pytest"],
          smoke=dict(gate=["ruff format --check .", "ruff check .", "pytest -q"],
                     commands=[["pytest -q", "run the tests"], ["ruff check .", "lint"]],
@@ -61,15 +38,13 @@ EVALS = [
                     build_output=["__pycache__/", ".venv/"], gitignore="__pycache__/\n.venv/\n.DS_Store\n")),
     dict(id=3, name="existing-repo-conflicts", project="site-notes",
          desc="A static site generator for personal notes.",
-         stack="TypeScript", gui=False, license="Apache-2.0", holder=None, fixture="existing-repo", git_init=False,
+         stack="TypeScript", ignores="node_modules", gui=False, license="Apache-2.0", holder=None, fixture="existing-repo", git_init=False,
          tooling="Biome for formatting and linting, and Vitest", gate_tools=["biome", "vitest"],
          smoke=dict(gate=["npx biome format .", "npx biome lint .", "npx vitest run"],
                     commands=[["npx vitest run", "run the tests"], ["npx biome lint .", "lint"]],
                     environment=["Node.js 22 or newer."], conventions=["Format with Biome."],
                     build_output=["node_modules/", "dist/"], gitignore="node_modules/\ndist/\n.DS_Store\n")),
 ]
-
-IGNORE_PATTERN = {"Rust": "target", "Python": "__pycache__", "TypeScript": "node_modules"}
 
 
 def read(p):
@@ -158,9 +133,10 @@ def checks(ev, run):
         add("LICENSE is the bundled Apache-2.0 text, byte for byte", same, "identical" if same else "missing or different")
     else:
         year, h = str(datetime.date.today().year), ev["holder"]
-        good = lic is not None and lic.lstrip().startswith("MIT License") and year in lic and h in lic
-        add("LICENSE is the MIT license with the current year and the copyright holder named in the user's message", good,
-            f"expected year {year} and holder {h!r}; head: {(lic or '')[:80]!r}")
+        tmpl = read(SKILL / "assets/licenses" / f"{ev['license']}.txt.tmpl")
+        want = tmpl.replace("{{YEAR}}", year).replace("{{HOLDER}}", h) if tmpl else None
+        add(f"LICENSE is the bundled {ev['license']} text, word for word, with the current year and the copyright holder named in the user's message",
+            want is not None and lic == want, f"expected year {year} and holder {h!r}; head: {(lic or '')[:80]!r}")
 
     rd = read(repo / "README.md")
     if not ev["fixture"]:  # in the conflict eval the existing README is kept on purpose, so its content is not checked here
@@ -169,7 +145,7 @@ def checks(ev, run):
             "README.md not found" if rd is None else "checked name, AGENTS.md, contribution-guide.md")
 
     gi = read(repo / ".gitignore")
-    pat = IGNORE_PATTERN[ev["stack"]]
+    pat = ev["ignores"]
     add(f".gitignore exists and ignores the {ev['stack']} build output ({pat})", gi is not None and pat in gi,
         ".gitignore not found" if gi is None else f"pattern {pat!r} {'found' if pat in gi else 'absent'}")
 
@@ -370,11 +346,11 @@ def cmd_smoke(it):
             subprocess.run(["git", "init", "-q", str(repo)], check=True)
         sm = ev["smoke"]
         gen = {".gitignore": sm["gitignore"]}
-        if ev["license"] == "MIT":
-            gen["LICENSE"] = MIT_TEXT.format(year=datetime.date.today().year, holder=ev["holder"])
         values = {"name": ev["project"], "description": ev["desc"], "stack": ev["stack"], "license": ev["license"],
                   "gui": ev["gui"], "gate": sm["gate"], "commands": sm["commands"], "environment": sm["environment"],
                   "conventions": sm["conventions"], "build_output": sm["build_output"], "generated": gen}
+        if ev["holder"]:
+            values["license_holder"] = ev["holder"]
         (run / "values.json").write_text(json.dumps(values, indent=2))
         rc, plan = scaffold("plan", "--values", str(run / "values.json"), "--target", str(repo))
         if rc or plan.get("warnings") or plan.get("unregistered_assets") or plan["fresh"] == bool(ev["fixture"]):

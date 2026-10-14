@@ -17,7 +17,7 @@ Write commit messages in [Conventional Commits](https://www.conventionalcommits.
 
 - **Title:** `<type>[(scope)]: <summary>` — lowercase, imperative, 50 characters
   or fewer, no trailing period. Types: `feat`, `fix`, `docs`, `style`,
-   `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+  `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
 - **Body** (optional): one blank line after the title, then short paragraphs
   explaining *why* the change was made, wrapped at 72 characters. Keep it brief.
 

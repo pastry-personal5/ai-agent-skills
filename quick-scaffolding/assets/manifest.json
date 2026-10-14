@@ -62,7 +62,11 @@
     }
   ],
   "licenses": {
-    "Apache-2.0": "licenses/Apache-2.0.txt"
+    "Apache-2.0": "licenses/Apache-2.0.txt",
+    "MIT": "licenses/MIT.txt.tmpl",
+    "BSD-2-Clause": "licenses/BSD-2-Clause.txt.tmpl",
+    "BSD-3-Clause": "licenses/BSD-3-Clause.txt.tmpl",
+    "ISC": "licenses/ISC.txt.tmpl"
   },
   "still_to_write": [
     {

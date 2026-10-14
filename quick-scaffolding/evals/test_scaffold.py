@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Regression tests for quick-scaffolding/scripts/scaffold.py and its templates. Run: python3 -I evals/test_scaffold.py"""
-import json, os, re, shutil, subprocess, sys, tempfile
+import datetime, hashlib, json, os, re, shutil, subprocess, sys, tempfile
 from pathlib import Path
 
 WS = Path(__file__).resolve().parent
@@ -157,6 +157,32 @@ rc, o = run("write", "--values", "v3.json", "--target", "t11", "--overwrite", "r
 check("--overwrite naming a file the scaffold does not produce: rc 2, nothing written",
       rc == 2 and "readme.md" in o["errors"][0] and not (TMP / "t11").exists(), o)
 
+# ---------------------------------------------------------------- big existing repos: the plan and the summary stay short
+
+(TMP / "big/node_modules/pkg").mkdir(parents=True)
+for i in range(300):
+    (TMP / f"big/node_modules/pkg/f{i}.js").write_text("x\n")
+(TMP / "big/src").mkdir()
+(TMP / "big/src/index.ts").write_text("export {};\n")
+(TMP / "big/docs").mkdir()
+(TMP / "big/docs/glossary.md").write_text("# Glossary\n\nStatus: Active\n\nTerms.\n")
+rc, p = run("plan", "--values", "v3.json", "--target", "big")
+tree = p["plan_tree"].splitlines()
+check("plan_tree collapses a many-file directory to one line that shows its file count",
+      rc == 0 and len(tree) < 30 and any(l.endswith("node_modules/  (300 files, existing, not part of the scaffold)") for l in tree), (len(tree), tree[:6]))
+check("plan_tree collapses a one-file directory and says '1 file'", any("src/" in l and "(1 file," in l for l in tree) and not any("index.ts" in l for l in tree), tree)
+check("plan_tree still lists the existing files in docs/, where the scaffold writes", any("glossary.md" in l and "(existing, not part of the scaffold)" in l for l in tree), tree)
+rc, w = run("write", "--values", "v3.json", "--target", "big")
+check("the write summary is short too, with the collapsed directory's file count",
+      rc == 0 and len(w["summary"].splitlines()) < 40 and "node_modules/  (300 files)" in w["summary"], (len(w["summary"].splitlines()), w["summary"][:300]))
+
+(TMP / "arch/docs/archive").mkdir(parents=True)
+(TMP / "arch/docs/archive/old-plan.md").write_text("# Old plan\n\nStatus: Archived\n\nSuperseded.\n")
+(TMP / "arch/docs/notes.md").write_text("# Notes\n\nStatus: Active\n\nLive notes.\n")
+rc, w = run("write", "--values", "v3.json", "--target", "arch")
+idx = (TMP / "arch/docs/README.md").read_text()
+check("the docs index lists live docs but leaves out docs/archive/", rc == 0 and "[notes.md](notes.md)" in idx and "old-plan.md" not in idx, idx)
+
 # ---------------------------------------------------------------- rejected input: rc 2, JSON errors, nothing written
 
 rc, o = run("write", "--values", vf("v5.json", license="GPL-3.0"), "--target", "t5")
@@ -168,8 +194,8 @@ rc, o = run("plan", "--values", "v6.json", "--target", "t6")
 check("missing gate: rc 2", rc == 2 and "gate" in o["errors"][0], o)
 rc, o = run("write", "--values", "v.json", "--target", "t1", "--append", "AGENTS.md")
 check("--append AGENTS.md rejected", rc == 2)
-rc, o = run("write", "--values", vf("v7.json", license="MIT", generated={".gitignore": "x\n", "LICENSE": "MIT License\n\nCopyright (c) 2026 X\n"}), "--target", "t7")
-check("MIT via generated LICENSE", rc == 0 and (TMP / "t7/LICENSE").read_text().startswith("MIT License"), o)
+rc, o = run("write", "--values", vf("v7.json", license="MPL-2.0", generated={".gitignore": "x\n", "LICENSE": "Mozilla Public License Version 2.0\n"}), "--target", "t7")
+check("a licence with no bundled text uses values.generated.LICENSE", rc == 0 and (TMP / "t7/LICENSE").read_text() == "Mozilla Public License Version 2.0\n", o)
 (TMP / "t8/.git").mkdir(parents=True)
 rc, p = run("plan", "--values", "v.json", "--target", "t8")
 check("a dir holding only .git counts as fresh", p["fresh"])
@@ -209,6 +235,49 @@ if os.geteuid() != 0:
 
 rc, p = run("plan", "--values", str(SKILL / "references/values.example.json"), "--target", "texample")
 check("references/values.example.json is a valid values file", rc == 0 and p["warnings"] == [] and not (TMP / "texample").exists(), p)
+
+# ---------------------------------------------------------------- bundled licences: canonical text, holder and year filled in
+
+year = str(datetime.date.today().year)
+BUNDLED = {  # id: (what the file starts with, what it ends with), written by hand from the SPDX text
+    "MIT": (f"MIT License\n\nCopyright (c) {year} Ada Example\n\nPermission is hereby granted", "USE OR OTHER DEALINGS IN THE SOFTWARE.\n"),
+    "BSD-2-Clause": (f"Copyright (c) {year} Ada Example\n\nRedistribution and use", "OF THE POSSIBILITY OF SUCH DAMAGE.\n"),
+    "BSD-3-Clause": (f"Copyright (c) {year} Ada Example.\n\nRedistribution and use", "OF THE POSSIBILITY OF SUCH DAMAGE.\n"),
+    "ISC": (f"ISC License\n\nCopyright {year} Ada Example\n\nPermission to use, copy, modify", "USE OR PERFORMANCE OF THIS SOFTWARE.\n"),
+}
+for lid, (head, tail) in BUNDLED.items():
+    rc, o = run("write", "--values", vf(f"vl-{lid}.json", license=lid, license_holder="Ada Example"), "--target", f"tl-{lid}")
+    lic = (TMP / f"tl-{lid}/LICENSE").read_text() if rc == 0 else ""
+    check(f"bundled {lid}: LICENSE is the canonical text with the holder and year filled in",
+          lic.startswith(head) and lic.endswith(tail) and "{{" not in lic and not re.search(r"<(year|owner|copyright holders)>", lic), (rc, lic[:120], o))
+PINNED = {  # sha256 of each bundled template: the legal wording must not change by accident. Update with assets/licenses/README.md
+    "MIT": "aeaae84c5db6dd072b23d98e1cb448268c2905a2601c0b16f471ae7409998f1f",
+    "BSD-2-Clause": "48cf5c3b88780027c3142ea8ad74938027be1a37027cc46c00b3a52e1ea822d6",
+    "BSD-3-Clause": "fbbae4ed873993b7115262bc4d233a50b26cefe57161d21c96283c260f3431f5",
+    "ISC": "3b47c4aaec0bf5a46d33437eaf247e9cacf6c83017e336bc4c3bf41f4038c679",
+}
+drift = [i for i, h in PINNED.items() if hashlib.sha256((SKILL / f"assets/licenses/{i}.txt.tmpl").read_bytes()).hexdigest() != h]
+check("bundled licence templates are word for word the pinned SPDX texts", not drift, drift)
+bsd2, bsd3 = [(TMP / f"tl-{i}/LICENSE").read_text() if (TMP / f"tl-{i}/LICENSE").is_file() else "" for i in ("BSD-2-Clause", "BSD-3-Clause")]
+check("BSD-3-Clause has the non-endorsement clause and BSD-2-Clause does not",
+      "3. Neither the name of the copyright holder" in bsd3 and bsd2 and "Neither the name" not in bsd2)
+rc, o = run("write", "--values", vf("vl-year.json", license="MIT", license_holder="Ada Example", license_year=2020), "--target", "tl-year")
+check("license_year replaces the current year", rc == 0 and (TMP / "tl-year/LICENSE").read_text().startswith("MIT License\n\nCopyright (c) 2020 Ada Example\n"), o)
+rc, o = run("plan", "--values", vf("vl-nohold.json", license="BSD-3-Clause"), "--target", "tl-nohold")
+check("a bundled licence that needs a holder, with none given: rc 2 naming license_holder, nothing written",
+      rc == 2 and "license_holder" in o["errors"][0] and not (TMP / "tl-nohold").exists(), o)
+rc, o = run("plan", "--values", vf("vl-badhold.json", license="MIT", license_holder="Ada\nExample"), "--target", "tl-badhold")
+check("license_holder with a line break: rc 2", rc == 2 and "license_holder" in o["errors"][0], o)
+
+# ---------------------------------------------------------------- one version in SKILL.md, README and CHANGELOG
+
+root = SKILL.parent
+if (root / "README.md").is_file() and (root / "CHANGELOG.md").is_file():
+    skill_v = re.search(r'^  version: "(\d+\.\d+\.\d+)"', (SKILL / "SKILL.md").read_text(), flags=re.M)
+    readme_v = re.search(r"Current version: (\d+\.\d+\.\d+)", (root / "README.md").read_text())
+    log_v = re.search(r"^## (\d+\.\d+\.\d+) - ", (root / "CHANGELOG.md").read_text(), flags=re.M)  # newest released entry; "## Unreleased" has no number
+    check("SKILL.md, the README and the newest released CHANGELOG entry name the same version",
+          all((skill_v, readme_v, log_v)) and skill_v[1] == readme_v[1] == log_v[1], (skill_v and skill_v[1], readme_v and readme_v[1], log_v and log_v[1]))
 
 # ---------------------------------------------------------------- asset drift is reported (on a private copy of the skill)
 

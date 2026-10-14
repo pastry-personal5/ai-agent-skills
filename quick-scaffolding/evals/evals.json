@@ -36,7 +36,7 @@
       "expectations": [
         "AGENTS.md has Decided, Undecided and Documentation sections and the 'Ask before building on an undecided item' rule",
         "CLAUDE.md contains exactly the one line @AGENTS.md",
-        "LICENSE is the MIT license with the current year and the copyright holder named in the user's message",
+        "LICENSE is the bundled MIT text, word for word, with the current year and the copyright holder named in the user's message",
         "README.md names the project and points to AGENTS.md and docs/contribution-guide.md",
         ".gitignore exists and ignores the Python build output (__pycache__)",
         "docs/development-process.md gate line is filled in and identical to the gate in AGENTS.md",

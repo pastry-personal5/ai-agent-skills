@@ -26,7 +26,7 @@ Ask once, in a single message, and only what the arguments, the directory name, 
 4. License. Offer Apache-2.0 as the default and let the user pick another.
 5. Tooling: formatter, linter and test tool. Propose the conventional tools for the stack that run with no extra config file (for example `rustfmt, clippy and cargo test`) and ask the user to reply "ok" or name replacements. Skip this when the arguments already name the tools. If the stack is not known yet, you cannot propose tools: ask the other questions first, then put the tooling proposal in one short follow-up. That is the only case for a second message.
 
-For a license that needs a copyright holder (MIT, BSD), use `git config user.name` and the current year, and ask only if the name is empty. Apache-2.0 needs neither.
+For a license that needs a copyright holder (MIT, BSD-2-Clause, BSD-3-Clause, ISC), use `git config user.name` and ask only if the name is empty. The script fills in the current year. Apache-2.0 needs neither.
 
 ## 2. Write the values file
 
@@ -36,6 +36,8 @@ Turn the answers into this JSON, using exactly the tools the user confirmed. [re
 |---|---|
 | `name`, `description`, `stack` | From the interview. `stack` is a few words, e.g. `Python with ruff and pytest`. |
 | `license` | SPDX id, e.g. `Apache-2.0`. |
+| `license_holder` | The copyright holder's name on one line. Required for MIT, BSD-2-Clause, BSD-3-Clause and ISC; ignored for other licenses. |
+| `license_year` | Optional year such as `2026`. Defaults to the current year. |
 | `gui` | `true` or `false`. |
 | `gate` | The commands that must pass before a change is done: format check, linter with warnings denied, tests. A list of strings. The script writes them identically into AGENTS.md, the process doc and the contribution guide, so they cannot drift apart. |
 | `commands` | `["command", "short comment"]` pairs for build, run, test, format, lint (omit what the stack lacks). |
@@ -45,7 +47,7 @@ Turn the answers into this JSON, using exactly the tools the user confirmed. [re
 | `generated` | `".gitignore"`: the full file for the stack, plus `.DS_Store`. `"LICENSE"`: only when `license` has no bundled text (see below). |
 | `extra_assets` | Optional `{"src": ..., "dest": ...}` objects, filled in step 3. `src` is a path inside `assets/`, `dest` a path inside the target. |
 
-The bundled licence is Apache-2.0. For MIT or BSD, write the short standard text with the year and holder into `generated.LICENSE`. For a long licence such as GPL or MPL, do not write it from memory: ask the user for the text file and put its contents there.
+Apache-2.0, MIT, BSD-2-Clause, BSD-3-Clause and ISC are bundled: set `license` to the SPDX id (and `license_holder` where needed) and never write their text yourself. For any other licence, such as GPL or MPL, do not write it from memory: ask the user for the text file and put its contents in `generated.LICENSE`.
 
 ## 3. Plan
 
