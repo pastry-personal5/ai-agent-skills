@@ -33,15 +33,15 @@ A **phase** is done when every milestone is `Done` or `Dropped` and the phase's 
 
 Each phase gets its own directory, created when that phase is planned.
 
-| File                                          | Contents |
-|------------------------------------------------|----------|
-| `docs/roadmap.md`                               | Every phase, one line each: ID, title, status, and a link to its phase doc. This is the only place that says which phase is active. |
-| `docs/phase-N/phase-N.md`                       | The phase doc: goal, exit criteria, and short entries for its milestones. |
-| `docs/phase-N/milestone-NN-overview.md`         | One milestone's goal, scope, and completion checklist, in detail. |
-| `docs/phase-N/milestone-NN-architecture.md`     | The technical approach for implementing that milestone. |
-| `docs/phase-N/changelog.md`                     | A chronological log of decisions, owner calls, and design changes made during the phase, most recent entry first. |
+| File                                                | Contents |
+|-----------------------------------------------------|----------|
+| `docs/roadmap.md`                                   | Every phase, one line each: ID, title, status, and a link to its phase doc. This is the only place that says which phase is active. |
+| `docs/phase-N/phase-N.md`                           | The phase doc: goal, exit criteria, and short entries for its milestones. |
+| `docs/phase-N/milestone-NN-<theme>-overview.md`     | One milestone's goal, scope, and completion checklist, in detail. |
+| `docs/phase-N/milestone-NN-<theme>-architecture.md` | The technical approach for implementing that milestone. |
+| `docs/phase-N/changelog.md`                         | A chronological log of decisions, owner calls, and design changes made during the phase, most recent entry first. |
 
-`N` is the phase number (`phase-1`, `phase-2`, …). Every phase overview filename repeats that number: `docs/phase-N/phase-N.md`; generic `phase.md` filenames are not allowed. `NN` is the milestone number, zero-padded to two digits (`milestone-01`, `milestone-02`, …), matching the `M` in its `P<phase>-M<milestone>` ID.
+`N` is the phase number (`phase-1`, `phase-2`, …). Every phase overview filename repeats that number: `docs/phase-N/phase-N.md`; generic `phase.md` filenames are not allowed. `NN` is the milestone number, zero-padded to two digits (`milestone-01`, `milestone-02`, …), matching the `M` in its `P<phase>-M<milestone>` ID. `<theme>` is the milestone's main theme in kebab-case, so milestone 1's overview about authentication is `milestone-01-auth-overview.md`.
 
 A phase doc looks like this:
 
@@ -59,7 +59,7 @@ Goal: <one sentence>
 ### P1-M1: <title>
 Status: Done
 Goal: <one sentence>
-Plan: [overview](milestone-01-overview.md), [architecture](milestone-01-architecture.md)
+Plan: [overview](milestone-01-<theme>-overview.md), [architecture](milestone-01-<theme>-architecture.md)
 Notes: <decisions made, links to PRs; optional>
 ```
 
@@ -69,8 +69,8 @@ Keep milestone entries in the phase doc short — a link to its overview and arc
 
 Write its two plan docs first:
 
-- **`milestone-NN-overview.md`**: the milestone's goal, scope (what's in and out), and verifiable completion checklist.
-- **`milestone-NN-architecture.md`**: the technical approach — affected modules, new types or public interfaces, and any sequencing within the milestone.
+- **`milestone-NN-<theme>-overview.md`**: the milestone's goal, scope (what's in and out), and verifiable completion checklist.
+- **`milestone-NN-<theme>-architecture.md`**: the technical approach — affected modules, new types or public interfaces, and any sequencing within the milestone.
 
 Link both from the milestone's entry in the phase doc. A milestone whose plan docs raise an item from AGENTS.md's "Undecided" section needs that item decided first — see "Ask before building on an undecided item" in AGENTS.md.
 

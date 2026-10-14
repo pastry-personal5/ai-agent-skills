@@ -81,6 +81,11 @@ check("contribution guide: gate block, Status, neutral example, PR section still
 process_doc = (t1 / "docs/development-process.md").read_text()
 check("process doc: phase and milestone numbers may change", "Phase and milestone numbers may change" in process_doc)
 check("process doc: no commit body ID rule", "commit message bodies" not in process_doc)
+stale_plan_names = re.findall(r"milestone-(?:NN|\d{2})-(?:overview|architecture)\.md", process_doc)
+themed_plan_names = re.findall(r"milestone-(?:NN|\d{2})-<theme>-(overview|architecture)\.md", process_doc)
+check("process doc: milestone plan docs are named with <theme> in the table, template, and instructions",
+      not stale_plan_names and themed_plan_names.count("overview") >= 3 and themed_plan_names.count("architecture") >= 3,
+      (stale_plan_names, themed_plan_names))
 check("GUI: Product scope and Interaction model lines in Decided",
       "- **Product scope:** [product-behavior.md](docs/product-behavior.md).\n- **Interaction model:**" in agents1)
 check("GUI: Project paragraph links the product scope doc", "overview and [docs/product-behavior.md](docs/product-behavior.md) for product scope." in agents1)
