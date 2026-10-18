@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Regression tests for quick-scaffolding/scripts/scaffold.py and its templates. Run: python3 -I evals/test_scaffold.py"""
+"""Regression tests for the shared scaffold engine and platform packages. Run: python3 -I evals/test_scaffold.py"""
 import datetime, hashlib, json, os, re, shutil, subprocess, sys, tempfile
 from pathlib import Path
 
 WS = Path(__file__).resolve().parent
 SKILL = WS.parent
-S = SKILL / "scripts" / "scaffold.py"
+CORE = SKILL / "core"
+S = CORE / "scripts" / "scaffold.py"
 FIX = WS / "fixtures" / "existing-repo"
 TMP = Path(tempfile.mkdtemp(prefix="scaffold-test-"))
 ok = True
@@ -71,7 +72,7 @@ t1 = TMP / "t1"
 agents1 = (t1 / "AGENTS.md").read_text()
 check("write: 12 written", rc == 0 and len(w["written"]) == 12, w)
 check("CLAUDE.md is exactly @AGENTS.md", (t1 / "CLAUDE.md").read_text() == "@AGENTS.md\n")
-check("LICENSE is the bundled Apache text", (t1 / "LICENSE").read_bytes() == (SKILL / "assets/licenses/Apache-2.0.txt").read_bytes())
+check("LICENSE is the bundled Apache text", (t1 / "LICENSE").read_bytes() == (CORE / "assets/licenses/Apache-2.0.txt").read_bytes())
 check("no {{ left", not any("{{" in p.read_text(errors="ignore") for p in t1.rglob("*") if p.is_file() and p.name != "LICENSE"))
 g = "`cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo test`"
 check("gate identical in AGENTS.md and process doc", g in agents1 and f"The gate passes: {g}." in (t1 / "docs/development-process.md").read_text())
@@ -233,7 +234,7 @@ if os.geteuid() != 0:
     (TMP / "tro").chmod(0o755)
     check("I/O error while writing: rc 1 with JSON errors, not a traceback", rc == 1 and o.get("errors"), (rc, o))
 
-rc, p = run("plan", "--values", str(SKILL / "references/values.example.json"), "--target", "texample")
+rc, p = run("plan", "--values", str(CORE / "references/values.example.json"), "--target", "texample")
 check("references/values.example.json is a valid values file", rc == 0 and p["warnings"] == [] and not (TMP / "texample").exists(), p)
 
 # ---------------------------------------------------------------- bundled licences: canonical text, holder and year filled in
@@ -256,7 +257,7 @@ PINNED = {  # sha256 of each bundled template: the legal wording must not change
     "BSD-3-Clause": "fbbae4ed873993b7115262bc4d233a50b26cefe57161d21c96283c260f3431f5",
     "ISC": "3b47c4aaec0bf5a46d33437eaf247e9cacf6c83017e336bc4c3bf41f4038c679",
 }
-drift = [i for i, h in PINNED.items() if hashlib.sha256((SKILL / f"assets/licenses/{i}.txt.tmpl").read_bytes()).hexdigest() != h]
+drift = [i for i, h in PINNED.items() if hashlib.sha256((CORE / f"assets/licenses/{i}.txt.tmpl").read_bytes()).hexdigest() != h]
 check("bundled licence templates are word for word the pinned SPDX texts", not drift, drift)
 bsd2, bsd3 = [(TMP / f"tl-{i}/LICENSE").read_text() if (TMP / f"tl-{i}/LICENSE").is_file() else "" for i in ("BSD-2-Clause", "BSD-3-Clause")]
 check("BSD-3-Clause has the non-endorsement clause and BSD-2-Clause does not",
@@ -269,27 +270,74 @@ check("a bundled licence that needs a holder, with none given: rc 2 naming licen
 rc, o = run("plan", "--values", vf("vl-badhold.json", license="MIT", license_holder="Ada\nExample"), "--target", "tl-badhold")
 check("license_holder with a line break: rc 2", rc == 2 and "license_holder" in o["errors"][0], o)
 
-# ---------------------------------------------------------------- one version in SKILL.md, README and CHANGELOG
+# ---------------------------------------------------------------- thin adapters, self-contained packages, and released version metadata
 
 root = SKILL.parent
 if (root / "README.md").is_file() and (root / "CHANGELOG.md").is_file():
-    skill_v = re.search(r'^  version: "(\d+\.\d+\.\d+)"', (SKILL / "SKILL.md").read_text(), flags=re.M)
-    readme_v = re.search(r"Current version: (\d+\.\d+\.\d+)", (root / "README.md").read_text())
+    package_root = TMP / "packages"
+    package_run = subprocess.run(
+        [sys.executable, "-I", str(SKILL / "tools/build_packages.py"), str(package_root)],
+        capture_output=True, text=True)
+    codex = package_root / "codex/quick-scaffolding"
+    claude = package_root / "claude/quick-scaffolding"
+    check("package builder creates self-contained Codex and Claude distributions",
+          package_run.returncode == 0 and (codex / "SKILL.md").is_file() and
+          (claude / ".claude-plugin/plugin.json").is_file() and
+          (claude / "commands/quick-scaffolding.md").is_file(), package_run.stderr)
+    plugin_manifest = json.loads((claude / ".claude-plugin/plugin.json").read_text())
+    check("Claude plugin manifest carries the released package version",
+          plugin_manifest.get("name") == "quick-scaffolding" and plugin_manifest.get("version") == "1.0.0",
+          plugin_manifest)
+    shared = ["assets/manifest.json", "references/values.example.json", "references/workflow.md", "scripts/scaffold.py"]
+    check("both packages contain byte-identical shared workflow, assets, references, and engine",
+          all((codex / p).read_bytes() == (claude / p).read_bytes() for p in shared), shared)
+    codex_rc, codex_plan = run("plan", "--values", "v.json", "--target", "package-codex-target",
+                               script=codex / "scripts/scaffold.py")
+    claude_rc, claude_plan = run("plan", "--values", "v.json", "--target", "package-claude-target",
+                                 script=claude / "scripts/scaffold.py")
+    check("both packaged engines resolve their bundled assets and references",
+          codex_rc == claude_rc == 0 and not codex_plan["warnings"] and not claude_plan["warnings"],
+          (codex_plan, claude_plan))
+    skill_text = (codex / "SKILL.md").read_text()
+    frontmatter = skill_text.split("---", 2)[1]
+    check("Codex SKILL.md frontmatter uses only name and description",
+          set(re.findall(r"^([a-z_-]+):", frontmatter, flags=re.M)) == {"name", "description"}, frontmatter)
+    openai_yaml = (codex / "agents/openai.yaml").read_text()
+    check("Codex metadata names the skill and keeps explicit-only invocation",
+          'display_name: "Quick Scaffolding"' in openai_yaml and
+          'default_prompt: "Use $quick-scaffolding ' in openai_yaml and
+          "allow_implicit_invocation: false" in openai_yaml, openai_yaml)
+    check("Codex adapter contains no Claude-only argument or invocation metadata",
+          "$ARGUMENTS" not in skill_text and "disable-model-invocation" not in skill_text)
+    claude_command = (claude / "commands/quick-scaffolding.md").read_text()
+    check("Claude adapter uses native arguments and manual-only invocation",
+          "$ARGUMENTS" in claude_command and "argument-hint:" in claude_command and
+          "disable-model-invocation: true" in claude_command and "${CLAUDE_PLUGIN_ROOT}" in claude_command,
+          claude_command)
+    second_run = subprocess.run(
+        [sys.executable, "-I", str(SKILL / "tools/build_packages.py"), str(package_root)],
+        capture_output=True, text=True)
+    check("package builder refuses a non-empty output directory", second_run.returncode == 1 and "must be empty" in second_run.stderr)
+    readme_text = (root / "README.md").read_text()
+    check("README builds both adapters and installs Codex through the current user skill root",
+          "tools/build_packages.py" in readme_text and "~/.agents/skills/quick-scaffolding" in readme_text and
+          "--plugin-dir" in readme_text and "~/.codex/skills/quick-scaffolding" not in readme_text)
+    readme_v = re.search(r"Current version: (\d+\.\d+\.\d+)", readme_text)
     log_v = re.search(r"^## (\d+\.\d+\.\d+) - ", (root / "CHANGELOG.md").read_text(), flags=re.M)  # newest released entry; "## Unreleased" has no number
-    check("SKILL.md, the README and the newest released CHANGELOG entry name the same version",
-          all((skill_v, readme_v, log_v)) and skill_v[1] == readme_v[1] == log_v[1], (skill_v and skill_v[1], readme_v and readme_v[1], log_v and log_v[1]))
+    check("README and newest released CHANGELOG entry name the same version",
+          all((readme_v, log_v)) and readme_v[1] == log_v[1], (readme_v and readme_v[1], log_v and log_v[1]))
 
 # ---------------------------------------------------------------- asset drift is reported (on a private copy of the skill)
 
 cp = skill_copy("skill-copy")
-cs = cp / "scripts" / "scaffold.py"
+cs = cp / "core" / "scripts" / "scaffold.py"
 rc, p = run("plan", "--values", "v.json", "--target", "tc1", script=cs)
 check("unmodified skill copy: no warnings, nothing unregistered", rc == 0 and p["warnings"] == [] and p["unregistered_assets"] == [], p)
-(cp / "assets" / "zz-probe.md").write_text("# probe\n")
+(cp / "core" / "assets" / "zz-probe.md").write_text("# probe\n")
 rc, p = run("plan", "--values", "v.json", "--target", "tc1", script=cs)
 check("unregistered asset is reported", p["unregistered_assets"] == ["zz-probe.md"], p["unregistered_assets"])
-(cp / "assets" / "zz-probe.md").unlink()
-manifest = cp / "assets" / "manifest.json"
+(cp / "core" / "assets" / "zz-probe.md").unlink()
+manifest = cp / "core" / "assets" / "manifest.json"
 manifest.write_text(manifest.read_text().replace("The gate passes: TBD", "The gate passes: NOPE"))
 rc, p = run("plan", "--values", "v.json", "--target", "tc1", script=cs)
 check("a broken replace anchor shows up in plan warnings", rc == 0 and any("NOPE" in x for x in p["warnings"]), p["warnings"])

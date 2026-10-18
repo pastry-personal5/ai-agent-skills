@@ -1,0 +1,6 @@
+interface:
+  display_name: "Quick Scaffolding"
+  short_description: "Scaffold repository metadata and process docs"
+  default_prompt: "Use $quick-scaffolding to scaffold repository metadata and process documentation in the requested directory."
+policy:
+  allow_implicit_invocation: false

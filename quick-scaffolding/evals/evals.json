@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "/quick-scaffolding <target-dir>\n\nProject name: pixel-notes\nDescription: A tiny macOS note-taking app with a Qt Widgets window.\nStack: Rust\nHas a GUI: yes\nTooling: rustfmt, clippy and cargo test\nLicense: Apache-2.0",
+      "prompt": "$quick-scaffolding <target-dir>\n\nProject name: pixel-notes\nDescription: A tiny macOS note-taking app with a Qt Widgets window.\nStack: Rust\nHas a GUI: yes\nTooling: rustfmt, clippy and cargo test\nLicense: Apache-2.0",
       "expected_output": "Repo meta files, docs and AGENTS.md scaffolded per the manifest, with every check in evals/evalkit.py passing.",
       "files": [],
       "expectations": [
@@ -30,7 +30,7 @@
     },
     {
       "id": 2,
-      "prompt": "/quick-scaffolding <target-dir>\n\nProject name: logslice\nDescription: A command-line tool that slices large log files by time range.\nStack: Python\nHas a GUI: no\nTooling: ruff and pytest\nLicense: MIT (copyright holder: Ada Example)",
+      "prompt": "$quick-scaffolding <target-dir>\n\nProject name: logslice\nDescription: A command-line tool that slices large log files by time range.\nStack: Python\nHas a GUI: no\nTooling: ruff and pytest\nLicense: MIT (copyright holder: Ada Example)",
       "expected_output": "Repo meta files, docs and AGENTS.md scaffolded per the manifest, with every check in evals/evalkit.py passing.",
       "files": [],
       "expectations": [
@@ -57,7 +57,7 @@
     },
     {
       "id": 3,
-      "prompt": "/quick-scaffolding <target-dir>\n\nProject name: site-notes\nDescription: A static site generator for personal notes.\nStack: TypeScript\nHas a GUI: no\nTooling: Biome for formatting and linting, and Vitest\nLicense: Apache-2.0",
+      "prompt": "$quick-scaffolding <target-dir>\n\nProject name: site-notes\nDescription: A static site generator for personal notes.\nStack: TypeScript\nHas a GUI: no\nTooling: Biome for formatting and linting, and Vitest\nLicense: Apache-2.0",
       "expected_output": "Repo meta files, docs and AGENTS.md scaffolded per the manifest, with every check in evals/evalkit.py passing.",
       "files": [
         "evals/fixtures/existing-repo"

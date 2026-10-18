@@ -15,6 +15,7 @@ from pathlib import Path
 
 WS = HERE = Path(__file__).resolve().parent
 SKILL = WS.parent
+CORE = SKILL / "core"
 CONFIGS = ("with_skill", "without_skill")
 UX = ("ux-terms.md", "ux-gui.md", "ux-information-architecture.md")
 
@@ -67,7 +68,7 @@ def license_line(ev):
 
 
 def invocation(ev, target):
-    return (f"/quick-scaffolding {target}\n\nProject name: {ev['project']}\nDescription: {ev['desc']}\n"
+    return (f"$quick-scaffolding {target}\n\nProject name: {ev['project']}\nDescription: {ev['desc']}\n"
             f"Stack: {ev['stack']}\nHas a GUI: {'yes' if ev['gui'] else 'no'}\nTooling: {ev['tooling']}\n"
             f"License: {license_line(ev)}")
 
@@ -91,11 +92,12 @@ def agent_prompt(ev, config, run):
            f"file that already exists. Assume: plan approval = yes; every file conflict = skip (keep the existing file). "
            f"Do not log a prompt for anything the user's message already answers.")
     if config == "with_skill":
-        return (f"You are running one test of a Claude Code skill by following its instructions by hand.\n\n"
-                f"The skill is user-invocation-only, so do not use the Skill tool. Read `{SKILL}/SKILL.md` and follow it "
-                f"step by step. The skill's base directory is `{SKILL}` (its assets/ folder is there). Do not modify "
-                f"anything inside that directory.\n\nThe user typed this, so treat everything after the command name as "
-                f"`$ARGUMENTS`:\n\n```\n{invocation(ev, target)}\n```\n\n{log}\n\n"
+        package = run / "packages/codex/quick-scaffolding"
+        return (f"You are running one test of a packaged Codex CLI skill by following its instructions by hand.\n\n"
+                f"The skill is explicit-invocation-only. Read `{package}/SKILL.md` and follow it "
+                f"step by step. The skill's base directory is `{package}`. Do not modify "
+                f"anything inside that directory.\n\nThe user invoked the skill with this request:\n\n"
+                f"```text\n{invocation(ev, target)}\n```\n\n{log}\n\n"
                 f"Write the scaffold only into `{target}`. Save the skill's values file at `{run}/values.json` (outside the "
                 f"target). Your final reply must be exactly what the skill tells you to print at the end. Also save "
                 f"that same text to `{run}/final_message.md`.\n")
@@ -129,11 +131,11 @@ def checks(ev, run):
 
     lic = read(repo / "LICENSE")
     if ev["license"] == "Apache-2.0":
-        same = (repo / "LICENSE").is_file() and filecmp.cmp(repo / "LICENSE", SKILL / "assets/licenses/Apache-2.0.txt", shallow=False)
+        same = (repo / "LICENSE").is_file() and filecmp.cmp(repo / "LICENSE", CORE / "assets/licenses/Apache-2.0.txt", shallow=False)
         add("LICENSE is the bundled Apache-2.0 text, byte for byte", same, "identical" if same else "missing or different")
     else:
         year, h = str(datetime.date.today().year), ev["holder"]
-        tmpl = read(SKILL / "assets/licenses" / f"{ev['license']}.txt.tmpl")
+        tmpl = read(CORE / "assets/licenses" / f"{ev['license']}.txt.tmpl")
         want = tmpl.replace("{{YEAR}}", year).replace("{{HOLDER}}", h) if tmpl else None
         add(f"LICENSE is the bundled {ev['license']} text, word for word, with the current year and the copyright holder named in the user's message",
             want is not None and lic == want, f"expected year {year} and holder {h!r}; head: {(lic or '')[:80]!r}")
@@ -280,6 +282,8 @@ def cmd_setup(it):
             if run.exists():
                 shutil.rmtree(run)
             (run / "outputs").mkdir(parents=True)
+            if cfg == "with_skill":
+                subprocess.run([sys.executable, "-I", str(SKILL / "tools/build_packages.py"), str(run / "packages")], check=True)
             repo = run / "repo"
             if ev["fixture"]:
                 shutil.copytree(WS / "fixtures" / ev["fixture"], repo)
@@ -325,7 +329,7 @@ def cmd_grade(it):
 
 
 def scaffold(*args):
-    r = subprocess.run([sys.executable, "-I", str(SKILL / "scripts" / "scaffold.py"), *args], capture_output=True, text=True)
+    r = subprocess.run([sys.executable, "-I", str(CORE / "scripts" / "scaffold.py"), *args], capture_output=True, text=True)
     return r.returncode, json.loads(r.stdout or "{}")
 
 
