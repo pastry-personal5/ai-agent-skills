@@ -78,7 +78,7 @@ g = "`cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `carg
 check("gate identical in AGENTS.md and process doc", g in agents1 and f"The gate passes: {g}." in (t1 / "docs/development-process.md").read_text())
 cg = (t1 / "docs/contribution-guide.md").read_text()
 check("contribution guide: gate block, Status, neutral example, PR section still TBD",
-      "```sh\ncargo fmt --check\ncargo clippy" in cg and "Status: Active" in cg and "mDNS" not in cg and "## Pull requests\n\nTBD" in cg)
+      "```sh\ncargo fmt --check\ncargo clippy" in cg and "Status: Active" in cg and "## Pull requests\n\nTBD" in cg)
 process_doc = (t1 / "docs/development-process.md").read_text()
 check("process doc: phase and milestone numbers may change", "Phase and milestone numbers may change" in process_doc)
 check("process doc: no commit body ID rule", "commit message bodies" not in process_doc)
@@ -99,12 +99,10 @@ rc, w2 = run("write", "--values", "v.json", "--target", "t1")
 check("second write is a no-op, TBD files still reported", rc == 0 and not w2["written"] and not w2["skipped"] and len(w2["unchanged"]) == 12 and w2["tbd_files"])
 
 # template content
-dev1 = (t1 / "docs/development-process.md").read_text()
 rule = "Ask before building on an undecided item"
 check("AGENTS.md states the undecided-item rule once, in Agent workflow",
       agents1.count(rule) == 1 and agents1.index(rule) < agents1.index("## Decided"), agents1.count(rule))
 check("AGENTS.md does not assume ripgrep", "rg -n" not in agents1 and "| rg" not in agents1)
-check("process doc has no stack-specific 'bridge surfaces' jargon", "bridge surfaces" not in dev1)
 
 # ---------------------------------------------------------------- non-GUI project
 
@@ -284,13 +282,17 @@ if (root / "README.md").is_file() and (root / "CHANGELOG.md").is_file():
           package_run.returncode == 0 and (codex / "SKILL.md").is_file() and
           (claude / ".claude-plugin/plugin.json").is_file() and
           (claude / "commands/quick-scaffolding.md").is_file(), package_run.stderr)
+    package_version = (SKILL / "VERSION").read_text().strip()
     plugin_manifest = json.loads((claude / ".claude-plugin/plugin.json").read_text())
-    check("Claude plugin manifest carries the released package version",
-          plugin_manifest.get("name") == "quick-scaffolding" and plugin_manifest.get("version") == "1.0.0",
+    check("Claude plugin manifest carries the canonical package version",
+          plugin_manifest.get("name") == "quick-scaffolding" and plugin_manifest.get("version") == package_version,
           plugin_manifest)
     shared = ["assets/manifest.json", "references/values.example.json", "references/workflow.md", "scripts/scaffold.py"]
     check("both packages contain byte-identical shared workflow, assets, references, and engine",
           all((codex / p).read_bytes() == (claude / p).read_bytes() for p in shared), shared)
+    packaged_junk = [p for package in (codex, claude) for p in package.rglob("*")
+                     if p.name == "__pycache__" or p.suffix in (".pyc", ".pyo") or p.name == ".DS_Store"]
+    check("packages exclude caches and local filesystem metadata", not packaged_junk, packaged_junk)
     codex_rc, codex_plan = run("plan", "--values", "v.json", "--target", "package-codex-target",
                                script=codex / "scripts/scaffold.py")
     claude_rc, claude_plan = run("plan", "--values", "v.json", "--target", "package-claude-target",
@@ -321,11 +323,8 @@ if (root / "README.md").is_file() and (root / "CHANGELOG.md").is_file():
     readme_text = (root / "README.md").read_text()
     check("README builds both adapters and installs Codex through the current user skill root",
           "tools/build_packages.py" in readme_text and "~/.agents/skills/quick-scaffolding" in readme_text and
-          "--plugin-dir" in readme_text and "~/.codex/skills/quick-scaffolding" not in readme_text)
-    readme_v = re.search(r"Current version: (\d+\.\d+\.\d+)", readme_text)
-    log_v = re.search(r"^## (\d+\.\d+\.\d+) - ", (root / "CHANGELOG.md").read_text(), flags=re.M)  # newest released entry; "## Unreleased" has no number
-    check("README and newest released CHANGELOG entry name the same version",
-          all((readme_v, log_v)) and readme_v[1] == log_v[1], (readme_v and readme_v[1], log_v and log_v[1]))
+          "--plugin-dir" in readme_text)
+    check("README does not duplicate the package version", package_version not in readme_text)
 
 # ---------------------------------------------------------------- asset drift is reported (on a private copy of the skill)
 

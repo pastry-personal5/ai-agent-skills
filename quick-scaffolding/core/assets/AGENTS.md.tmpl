@@ -40,17 +40,13 @@ Nothing is undecided yet. List open product and architecture questions here as t
 
 {{COMMANDS_BLOCK}}
 
-Before you consider a change done, run the gate: {{GATE}}.
-
 ## Code conventions
 
 {{CONVENTIONS}}
-- Don't use phase words such as `phase`, `phase-1`, `phase1`, or `phase_1` in source-code names: modules, files, types, functions, variables, constants, tests, or build and script targets. Name code after the concept it owns.
-- Don't use `MVP` in any form (`MVP`, `mvp`, `Mvp`) anywhere in source code or scripts, including identifiers, comments, and strings. Those terms belong only in `docs/`.
 
 ## Dependencies and licensing
 
-- Ask before adding or changing a dependency or build tool. Approved dependencies must have licenses compatible with {{LICENSE}}.
+- Approved dependencies must have licenses compatible with {{LICENSE}}.
 
 ## Documentation
 
@@ -62,8 +58,6 @@ Before you consider a change done, run the gate: {{GATE}}.
 - **Format:** filenames are lowercase kebab-case. Each doc starts with a title, then a `Status:` line, then a one- to three-sentence summary.
 - **Index:** add every new doc to [docs/README.md](docs/README.md) with a one-line description.
 - **Phases and milestones:** phase plans and milestone status follow [docs/development-process.md](docs/development-process.md).
-- **Phase-plan filenames:** every phase overview is named `phase-N.md`, where `N` is its phase number; never use a generic `phase.md`.
-- **Milestone checklists:** each milestone overview has a completion checklist instead of a "Done when" section. Check an item only after its acceptance evidence exists; do not mark the milestone `Done` until every item is checked and the full gate passes.
 - **Keep docs current:**
   - Update docs in the same change as the code or decision they describe.
   - Update `README.md` when user-visible features, requirements, or build steps change.

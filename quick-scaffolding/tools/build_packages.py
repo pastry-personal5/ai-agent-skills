@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build self-contained Codex and Claude Code packages from shared sources."""
 import argparse
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -10,11 +11,12 @@ ROOT = Path(__file__).resolve().parent.parent
 CORE = ROOT / "core"
 ADAPTERS = ROOT / "adapters"
 COMMON_DIRS = ("assets", "references", "scripts")
+COPY_IGNORE = shutil.ignore_patterns("__pycache__", "*.py[co]", ".DS_Store")
 
 
 def copy_common(destination):
     for name in COMMON_DIRS:
-        shutil.copytree(CORE / name, destination / name)
+        shutil.copytree(CORE / name, destination / name, ignore=COPY_IGNORE)
     shutil.copy2(CORE / "workflow.md", destination / "references" / "workflow.md")
 
 
@@ -35,6 +37,10 @@ def build(output):
     shutil.copytree(ADAPTERS / "claude" / ".claude-plugin", claude / ".claude-plugin")
     shutil.copytree(ADAPTERS / "claude" / "commands", claude / "commands")
     copy_common(claude)
+    manifest_path = claude / ".claude-plugin" / "plugin.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["version"] = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return codex, claude
 
 

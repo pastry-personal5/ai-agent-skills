@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Remove legacy project-specific template rules and eval assertions, centralize the development package version, make Claude target parsing path-aware, and exclude caches and filesystem metadata from built packages.
 - Split quick-scaffolding into one shared engine/workflow and thin native adapters: a Codex skill with explicit `$quick-scaffolding` policy, and a Claude Code plugin command with `/quick-scaffolding`, `$ARGUMENTS`, `argument-hint`, and manual-only invocation. Add a deterministic builder for self-contained packages and cross-package parity tests.
 - The development process doc now lets phase and milestone numbers change as plans evolve (update IDs, filenames and links together), and names milestone plan docs `milestone-NN-<theme>-overview.md` and `milestone-NN-<theme>-architecture.md`.
 - MIT, BSD-2-Clause, BSD-3-Clause and ISC are bundled with their canonical text, so the agent no longer writes licence text from memory. Put the copyright holder in `license_holder` in the values file; the year defaults to the current one (`license_year` overrides it).

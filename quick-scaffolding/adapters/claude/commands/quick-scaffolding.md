@@ -8,6 +8,6 @@ disable-model-invocation: true
 
 Arguments: $ARGUMENTS
 
-Treat the first argument as the target directory. With no target, use the current working directory. Treat the remaining arguments and conversation as interview answers.
+Treat the first argument as the target only when it looks like a path: it contains `/`, starts with `.` or `~`, or names an existing directory. Otherwise use the current working directory. Treat all other arguments and the conversation as interview answers.
 
 Before acting, read `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` completely and follow it. In that workflow, `<skill-dir>` is `${CLAUDE_PLUGIN_ROOT}`.

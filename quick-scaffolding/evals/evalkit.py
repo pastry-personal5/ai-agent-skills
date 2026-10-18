@@ -168,9 +168,9 @@ def checks(ev, run):
         m = re.search(r"## Required validation.*?```[a-z]*\n(.*?)```", cg, flags=re.S)
         cmds = [l.strip() for l in (m.group(1).splitlines() if m else []) if l.strip()]
         why = f"validation commands: {cmds}"
-    add("docs/contribution-guide.md has a Status line, the stack's gate commands under Required validation, and no leftover TV-project example",
-        bool(cg) and "Status: Active" in cg and len(cmds) >= 2 and agents is not None and all(c in agents for c in cmds)
-        and "mDNS" not in cg, why or "contribution-guide.md not found")
+    add("docs/contribution-guide.md has a Status line and the stack's gate commands under Required validation",
+        bool(cg) and "Status: Active" in cg and len(cmds) >= 2 and agents is not None and all(c in agents for c in cmds),
+        why or "contribution-guide.md not found")
 
     pm = read(docs / "product-behavior.md")
     if ev["gui"]:
@@ -211,11 +211,6 @@ def checks(ev, run):
     low = (agents or "").lower()
     absent = [t for t in ev["gate_tools"] if t.lower() not in low]
     add("AGENTS.md uses the tools the user named for the gate", agents is not None and not absent, f"absent: {absent}")
-
-    forbid = ["CXX-Qt", "file manager", "Folder Item"] + ([] if ev["stack"] == "Rust" else ["cargo", "clippy", "rustfmt", "Qt"])
-    hit = [w for w in forbid if agents and w.lower() in agents.lower()]
-    add(f"AGENTS.md carries no dual-pane-specific or wrong-stack content for a {ev['stack']} project", agents is not None and not hit,
-        f"found: {hit}")
 
     junk = [n for n in ("target", "node_modules", "__pycache__", "Cargo.lock", "dist", "build") if (repo / n).exists()]
     git_ok = True
