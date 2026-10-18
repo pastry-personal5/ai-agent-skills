@@ -1,8 +1,6 @@
 # AGENTS.md
 
-Instructions for AI coding agents and contributors working in this repository.
-
-This file is the **single source of agent instructions**. `CLAUDE.md` is a one-line stub that imports it with `@AGENTS.md`. Leave the stub as it is and put new guidance here.
+Instructions for contributors and AI coding agents. This is the single source of agent instructions; `CLAUDE.md` imports it with `@AGENTS.md`.
 
 ## Project
 
@@ -10,29 +8,28 @@ This file is the **single source of agent instructions**. `CLAUDE.md` is a one-l
 
 Stack: {{STACK}}.
 
-See [README.md](README.md) for the user-facing overview{{PRODUCT_SCOPE_REF}}. Setup, validation, commit message, and pull request conventions are in [docs/contribution-guide.md](docs/contribution-guide.md). Design and process docs are indexed at [docs/README.md](docs/README.md).
+See [README.md](README.md) for the overview{{PRODUCT_SCOPE_REF}}. Setup and contribution rules are in [docs/contribution-guide.md](docs/contribution-guide.md); other docs are indexed at [docs/README.md](docs/README.md).
 
 ## Agent workflow
 
-- Work autonomously only on a clearly scoped task within the active milestone. `docs/roadmap.md` identifies the active phase (create it when the first phase is planned); follow its milestones in order unless its phase plan says otherwise.
-- Before starting implementation, read the active phase and milestone plans, the relevant design docs, and the applicable items under "Undecided" below.
-- Before executing a milestone, add a completion checklist to its overview doc. The checklist is its executable definition of done; it replaces a narrative "Done when" section.
-- Check an item only after its acceptance evidence exists. Keep implementation, tests, and directly affected documentation in the same change.
-- A milestone is complete only when every checklist item is checked and the gate passes: {{GATE}}. If a command cannot run, leave its related item unchecked and report the exact blocker.
-- Ask before building on an undecided item (anything listed under "Undecided" below), adding or changing a dependency or build tool, deleting user data, or broadly restructuring the repository. Redoing work is the most expensive outcome. Everything else that is within the approved milestone and task scope may proceed without a separate approval.
+- Work only on a clear task in the active milestone. Read its plans, relevant design docs, and applicable "Undecided" items first.
+- Before implementation, add a verifiable completion checklist to the milestone overview. Check items only when evidence exists.
+- Keep implementation, tests, and affected docs together. A milestone is done only when its checklist is complete and the gate passes: {{GATE}}. If a command cannot run, leave its item unchecked and report the blocker.
+- Ask before building on an undecided item, changing dependencies or build tools, deleting user data, or broadly restructuring the repository. Other work within the approved task and milestone may proceed.
+- Follow the active phase and milestone order in `docs/roadmap.md` unless the phase plan says otherwise. Create the roadmap when planning the first phase.
 
-## Decided — do not change without asking
+## Decided — ask before changing
 
 - **Technical stack:** {{STACK}}.
 {{GUI_DECIDED}}
 - **License:** {{LICENSE}} for all project code.
-- **Development process:** work is organized in numbered phases (Phase 1, 2, 3, …). Each phase has numbered milestones (Milestone 1, 2, 3, …), and milestone numbering restarts in every phase. Milestone IDs look like `P1-M2`. See [docs/development-process.md](docs/development-process.md).
+- **Process:** numbered phases contain numbered milestones; milestone numbering restarts per phase. IDs use `P1-M2`. See [docs/development-process.md](docs/development-process.md).
 
 ## Undecided — ask before inventing
 
-Nothing is undecided yet. List open product and architecture questions here as they come up.
+Nothing yet. Add open product and architecture questions here.
 
-## Environment setup
+## Environment
 
 {{ENVIRONMENT}}
 
@@ -44,48 +41,24 @@ Nothing is undecided yet. List open product and architecture questions here as t
 
 {{CONVENTIONS}}
 
-## Dependencies and licensing
+## Dependencies
 
-- Approved dependencies must have licenses compatible with {{LICENSE}}.
+Approved dependencies must have licenses compatible with {{LICENSE}}.
 
 ## Documentation
 
-- **Where docs go:**
-  - `README.md` is user-facing.
-  - `AGENTS.md` holds the rules for contributors and agents.
-  - `docs/` holds design, research, process, and plan docs.
-  - `docs/archive/` holds docs that are no longer active.
-- **Format:** filenames are lowercase kebab-case. Each doc starts with a title, then a `Status:` line, then a one- to three-sentence summary.
-- **Index:** add every new doc to [docs/README.md](docs/README.md) with a one-line description.
-- **Phases and milestones:** phase plans and milestone status follow [docs/development-process.md](docs/development-process.md).
-- **Keep docs current:**
-  - Update docs in the same change as the code or decision they describe.
-  - Update `README.md` when user-visible features, requirements, or build steps change.
-  - Update this file when build commands, tooling, or project decisions change, or when an item under "Undecided" gets decided.
-- **Link, don't copy.** Each fact lives in one place, and other docs link to it.
-- **Archive, don't delete:**
-  1. When a doc is finished or superseded (for example a completed phase plan), set its status line.
-  2. `git mv` it into `docs/archive/`. A finished phase directory (`docs/phase-N/`) moves as a whole into `docs/archive/phases/`.
-  3. Fix every link to it.
-
-  Archived docs are not maintained.
+- `README.md` is user-facing; `AGENTS.md` holds contributor rules; `docs/` holds plans and design; `docs/archive/` holds inactive docs.
+- Use lowercase kebab-case filenames. Start each doc with a title, `Status:` line, and one- to three-sentence summary.
+- Add every doc to [docs/README.md](docs/README.md). Follow [docs/development-process.md](docs/development-process.md) for phase and milestone plans.
+- Update affected docs with code. Update `README.md` for user-visible changes and this file for tooling, commands, or decisions.
+- Link instead of copying facts.
+- Archive completed or superseded docs: update status, `git mv` them under `docs/archive/` (completed phase directories go under `docs/archive/phases/`), and fix links. Archived docs are not maintained.
 
 ## Token efficiency
 
-This file is loaded in every session, so keep it short. Long-form material belongs in `docs/`.
-
-- **Skip generated and bulky files.**
-  - Never read or search build output and dependency directories ({{BUILD_OUTPUT}}).
-  - Search with `git grep` (or `rg`, if installed), which skip ignored files.
-  - Don't open lockfiles, `LICENSE`, or `docs/archive/` unless the task needs them.
-- **Read docs narrowly.** Start with `docs/README.md`, then read only what the task needs. For long docs, list the headings with `grep -n '^#' <file>` and read just the relevant section.
-- **Keep build output small.** Use the quiet flags of the stack's tools, and filter long logs, for example with `2>&1 | grep -E 'error|warning' | head -n 40`.
-- **Iterate narrowly, verify once.**
-  - While iterating, run only the affected tests.
-  - Run the full gate once, before calling the change done.
-- **Look up APIs at the source.** Grep the pinned version of a dependency's source, or the one module or header you need, instead of browsing its whole tree.
-- **Edit, don't rewrite.**
-  - Change files with targeted edits.
-  - Don't re-read a file to confirm an edit.
-  - Check `git diff --stat` before reading a full diff.
-- **Reply briefly.** Summarize command output and diffs instead of pasting them.
+- Skip build/dependency output ({{BUILD_OUTPUT}}), lockfiles, `LICENSE`, and `docs/archive/` unless needed. Search with `git grep` or `rg`.
+- Start at `docs/README.md` and read only relevant docs or sections.
+- Keep logs short with quiet flags or filtering. Run affected tests while iterating and the full gate once at the end.
+- Consult only the needed dependency source/module for API details.
+- Make targeted edits; inspect `git diff --stat` before a full diff.
+- Reply with concise summaries, not raw logs.

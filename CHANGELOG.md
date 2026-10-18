@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Condense the shared workflow and generated guidance without changing scaffold behavior, conflict safeguards, or phase/milestone conventions.
 - Remove legacy project-specific template rules and eval assertions, centralize the development package version, make Claude target parsing path-aware, and exclude caches and filesystem metadata from built packages.
 - Split quick-scaffolding into one shared engine/workflow and thin native adapters: a Codex skill with explicit `$quick-scaffolding` policy, and a Claude Code plugin command with `/quick-scaffolding`, `$ARGUMENTS`, `argument-hint`, and manual-only invocation. Add a deterministic builder for self-contained packages and cross-package parity tests.
 - The development process doc now lets phase and milestone numbers change as plans evolve (update IDs, filenames and links together), and names milestone plan docs `milestone-NN-<theme>-overview.md` and `milestone-NN-<theme>-architecture.md`.

@@ -2,48 +2,41 @@
 
 Status: Active
 
-Development proceeds in numbered **phases**, and each phase is split into numbered **milestones**. This doc defines how phases and milestones work and where their plans live. The general rules for docs are in [AGENTS.md](../AGENTS.md) under "Documentation".
+Work is organized into numbered phases and milestones. General documentation rules are in [AGENTS.md](../AGENTS.md).
 
-## Phases and milestones
+## Structure and status
 
-- **Phases** are numbered Phase 1, Phase 2, Phase 3, and so on. A phase is a coherent product increment. It has a one-sentence goal and a list of exit criteria.
-- **Milestones** are numbered Milestone 1, 2, 3, and so on. Numbering restarts in each phase. A milestone is a small, verifiable step toward its phase's goal. It should fit in one reviewable change or a short series of changes.
-- **IDs:** `P<phase>-M<milestone>`. For example, `P1-M2` is Phase 1, Milestone 2.
-- **Renumbering:** Phase and milestone numbers may change as plans evolve. Update their IDs, filenames, and links together. Mark a dropped milestone `Dropped` with a one-line reason instead of deleting it.
-- **One active phase at a time.** Inside it, work on milestones in order unless the phase doc says otherwise.
+- A **phase** is a product increment with a goal and exit criteria. Status: `Planned`, `Active`, or `Done`.
+- A **milestone** is a small, verifiable step that fits one reviewable change or short series. Numbering restarts per phase. Status: `Planned`, `Active`, `Done`, or `Dropped`.
+- IDs use `P<phase>-M<milestone>` (for example, `P1-M2`).
+- Keep one active phase and follow its milestones in order unless its plan says otherwise.
+- Phase and milestone numbers may change. Update IDs, filenames, and links together. Mark a dropped milestone `Dropped` with a one-line reason.
 
-### Status values
+## Definition of done
 
-| Item      | Values                                  |
-|-----------|-----------------------------------------|
-| Phase     | `Planned`, `Active`, `Done`             |
-| Milestone | `Planned`, `Active`, `Done`, `Dropped`  |
+A milestone is done when:
 
-### Definition of done
-
-A **milestone** is done when all of these hold:
-
-1. Every item in its completion checklist is checked with the required acceptance evidence.
+1. Its completion checklist is checked with acceptance evidence.
 2. The gate passes: TBD
-3. Docs are updated in the same change, following AGENTS.md → "Documentation". This includes the milestone's status in its phase doc.
+3. Affected docs and its phase-doc status are updated in the same change.
 
-A **phase** is done when every milestone is `Done` or `Dropped` and the phase's exit criteria hold.
+A phase is done when every milestone is `Done` or `Dropped` and its exit criteria hold.
 
-## Where plans live
+## Plan files
 
-Each phase gets its own directory, created when that phase is planned.
+Create a phase directory when planning that phase.
 
-| File                                                | Contents |
-|-----------------------------------------------------|----------|
-| `docs/roadmap.md`                                   | Every phase, one line each: ID, title, status, and a link to its phase doc. This is the only place that says which phase is active. |
-| `docs/phase-N/phase-N.md`                           | The phase doc: goal, exit criteria, and short entries for its milestones. |
-| `docs/phase-N/milestone-NN-<theme>-overview.md`     | One milestone's goal, scope, and completion checklist, in detail. |
-| `docs/phase-N/milestone-NN-<theme>-architecture.md` | The technical approach for implementing that milestone. |
-| `docs/phase-N/changelog.md`                         | A chronological log of decisions, owner calls, and design changes made during the phase, most recent entry first. |
+| File | Purpose |
+|---|---|
+| `docs/roadmap.md` | All phases with ID, title, status, and phase-doc link; the sole authority for the active phase. |
+| `docs/phase-N/phase-N.md` | Phase goal, exit criteria, and brief milestone entries. |
+| `docs/phase-N/milestone-NN-<theme>-overview.md` | Milestone goal, in/out scope, and completion checklist. |
+| `docs/phase-N/milestone-NN-<theme>-architecture.md` | Affected modules, interfaces, approach, and sequencing. |
+| `docs/phase-N/changelog.md` | Reverse-chronological decisions and plan changes not clear from commits. |
 
-`N` is the phase number (`phase-1`, `phase-2`, …). Every phase overview filename repeats that number: `docs/phase-N/phase-N.md`; generic `phase.md` filenames are not allowed. `NN` is the milestone number, zero-padded to two digits (`milestone-01`, `milestone-02`, …), matching the `M` in its `P<phase>-M<milestone>` ID. `<theme>` is the milestone's main theme in kebab-case, so milestone 1's overview about authentication is `milestone-01-auth-overview.md`.
+`N` is the phase number. `NN` is the zero-padded milestone number matching its ID; `<theme>` is kebab-case. Do not use a generic `phase.md` filename.
 
-A phase doc looks like this:
+Keep phase-doc milestone entries short:
 
 ```markdown
 # Phase 1: <title>
@@ -60,40 +53,25 @@ Goal: <one sentence>
 Status: Done
 Goal: <one sentence>
 Plan: [overview](milestone-01-<theme>-overview.md), [architecture](milestone-01-<theme>-architecture.md)
-Notes: <decisions made, links to PRs; optional>
+Notes: <optional decisions or links>
 ```
 
-Keep milestone entries in the phase doc short — a link to its overview and architecture docs, not the design itself.
+Before implementation, create and link `milestone-NN-<theme>-overview.md` and `milestone-NN-<theme>-architecture.md`. Resolve any related "Undecided" item in `AGENTS.md` first.
 
-### Before starting a milestone
-
-Write its two plan docs first:
-
-- **`milestone-NN-<theme>-overview.md`**: the milestone's goal, scope (what's in and out), and verifiable completion checklist.
-- **`milestone-NN-<theme>-architecture.md`**: the technical approach — affected modules, new types or public interfaces, and any sequencing within the milestone.
-
-Link both from the milestone's entry in the phase doc. A milestone whose plan docs raise an item from AGENTS.md's "Undecided" section needs that item decided first — see "Ask before building on an undecided item" in AGENTS.md.
-
-### Changelog
-
-Each phase directory has a `changelog.md`. Add an entry whenever something happens during the phase that isn't obvious from a commit message alone: an owner decision, a design change from what a milestone's architecture doc originally said, an item moved from "Undecided" to "Decided" in AGENTS.md, or a dropped/reordered milestone. Keep entries short and reverse-chronological:
+Record owner decisions, departures from the architecture plan, decided open questions, and reordered/dropped milestones in `changelog.md`:
 
 ```markdown
 # Phase 1 changelog
 
 Status: Active
 
-Chronological record of decisions, owner calls, and design changes made during Phase 1. Newest entry first.
-
 ## Entries
 
-- 2026-09-28 — <who> — <what changed and why, with a link to the PR/doc if any>
+- 2026-09-28 — <who> — <what changed and why; optional link>
 ```
 
-## Doc status and archiving
+## Document lifecycle
 
-The rules for where docs go, how they're formatted, and how they're archived are in [AGENTS.md](../AGENTS.md) under "Documentation". This section adds only process details.
-
-- **Status values** for docs other than phase plans: `Draft`, `Proposal`, `Active`, `Superseded by <link>`, or `Archived`.
-- **When to archive:** a completed phase plan; a design replaced by a newer one; a spike or research note whose conclusions became decisions. When you archive a doc, also fix its links in `docs/roadmap.md`.
-- **Proposals are not decisions.** When a question from AGENTS.md's "Undecided" section or from an open-decisions list gets answered, record the answer under "Decided" in AGENTS.md.
+- Other docs use `Draft`, `Proposal`, `Active`, `Superseded by <link>`, or `Archived`. Proposals are not decisions.
+- Archive completed phase plans, superseded designs, and concluded research; fix their links in `docs/roadmap.md`.
+- Record resolved open questions under "Decided" in `AGENTS.md`.
