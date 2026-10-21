@@ -1,5 +1,10 @@
 # ai-agent-skills
 
+[![Release](https://img.shields.io/github/v/tag/pastry-personal5/ai-agent-skills?label=release)](CHANGELOG.md)
+[![Python](https://img.shields.io/badge/python-3-blue)](quick-scaffolding/core/scripts/scaffold.py)
+[![Codex CLI](https://img.shields.io/badge/Codex%20CLI-supported-lightgrey)](quick-scaffolding/adapters)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-supported-lightgrey)](quick-scaffolding/adapters)
+
 Agent skills for Codex CLI and Claude Code. See the [changelog](CHANGELOG.md).
 
 ## quick-scaffolding
